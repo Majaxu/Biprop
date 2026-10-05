@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Biprop · Juárez Beltrán</title>
+<style>
+  :root{
+    --navy:#10295a;
+    --navy-2:#17386f;
+    --ink:#142033;
+    --muted:#6d7888;
+    --line:#dce3ed;
+    --panel:#ffffff;
+    --bg:#f4f7fb;
+    --ok:#1f9d61;
+    --danger:#cc3d4a;
+    --warning:#d98f1b;
+    --soft:#edf2f7;
+    --shadow:0 12px 30px rgba(16,41,90,.10);
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+  }
+  button,input,textarea,select{font:inherit}
+  button{cursor:pointer}
+  a{color:inherit}
+  [hidden]{display:none !important}
+
+  .app{max-width:1100px;margin:0 auto;padding:22px}
+
+  /* --- Barra superior --- */
+  .topbar{
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));
+    color:white;padding:18px 22px 12px;border-radius:22px;box-shadow:var(--shadow);
+  }
+  .topRow{display:flex;gap:16px;align-items:center;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:16px;min-width:0;cursor:pointer}
+  .brand img{height:30px;width:auto;display:block;flex:0 0 auto}
+  .brand .sep{width:1px;height:34px;background:rgba(255,255,255,.28);flex:0 0 auto}
+  .brand h1{font-size:22px;margin:0 0 2px;font-weight:850;letter-spacing:.1px}
+  .brand p{margin:0;opacity:.82;font-size:13px}
+  .userchip{
+    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+    font-size:12px;opacity:.92;text-align:right;min-width:0
+  }
+  .userchip b{font-weight:800;overflow:hidden;text-overflow:ellipsis;max-width:260px;white-space:nowrap}
+  .userchip .role{
+    font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);
+    padding:2px 7px;border-radius:999px
+  }
+  .nav{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{
+    border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.10);color:white;
+    border-radius:999px;padding:9px 15px;font-weight:750;font-size:13px;white-space:nowrap;flex:0 0 auto
+  }
+  .nav button.on{background:white;color:var(--navy);border-color:white}
+
+  /* --- Botones --- */
+  .btn{
+    border:0;border-radius:12px;padding:10px 14px;font-weight:750;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-size:14px
+  }
+  .btn.navy{background:var(--navy);color:white}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
+  .btn.danger{background:#fff0f1;color:#9e2732;border:1px solid #f2c8cd}
+  .btn.small{padding:7px 10px;font-size:12px;border-radius:9px}
+  .btn.big{padding:15px 20px;font-size:16px;border-radius:14px}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .btn svg{width:18px;height:18px;flex:0 0 auto}
+
+  /* --- Bloques --- */
+  main{margin-top:18px}
+  .card{
+    background:white;border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:0 5px 20px rgba(16,41,90,.05);padding:18px
+  }
+  .sec{font-size:13px;color:var(--navy);text-transform:uppercase;letter-spacing:.45px;margin:22px 0 10px;font-weight:850}
+  .muted{color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);margin-top:5px}
+  .loader,.empty{
+    text-align:center;padding:44px 20px;background:white;border:1px solid var(--line);
+    border-radius:var(--radius);color:var(--muted);font-weight:700
+  }
+  .empty{border-style:dashed;border-color:#bdc8d7;font-weight:500}
+  .empty strong{display:block;color:var(--navy);font-size:17px;margin-bottom:6px}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 9px;
+    font-size:11px;font-weight:800;background:#eef2fb;color:#274690;border:1px solid #cdd8f0;white-space:nowrap
+  }
+  .pill.id{background:var(--navy);color:white;border-color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .pill.gris{background:#f1f4f8;color:#556172;border-color:#dfe5ee}
+  .pill.t-INGRESO{background:#effaf4;color:#157548;border-color:#cbead9}
+  .pill.t-EGRESO{background:#f1f4f8;color:#44505f;border-color:#d5dce6}
+  .pill.t-RECLAMO{background:#fff6e6;color:#8a5a08;border-color:#f3dcae}
+  .pill.t-REPARACION{background:#eaf3ff;color:#1c4f93;border-color:#c6dbf6}
+  .pill.t-INSPECCION{background:#f3f1fb;color:#4b3f8f;border-color:#d9d3f1}
+  .pill.t-MKT{background:#fdf0f8;color:#8c2a66;border-color:#f2cfe3}
+  .pill.t-OBRA{background:#f7f1ea;color:#6f4a1f;border-color:#e6d6c2}
+  .pill.t-SINIESTRO{background:#fff1f2;color:#a72e39;border-color:#f1c5ca}
+
+  /* --- Inicio --- */
+  .hero{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+  .search{position:relative}
+  .search input{
+    width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 16px;color:var(--ink);
+    font-size:16px;outline:none;box-shadow:0 5px 20px rgba(16,41,90,.05)
+  }
+  .search input:focus{border-color:#8da6c9;box-shadow:0 0 0 3px rgba(23,56,111,.08)}
+  .results{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  .rowlink{
+    display:flex;gap:10px;align-items:center;width:100%;text-align:left;
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;color:var(--ink)
+  }
+  .rowlink:hover{border-color:#b9c7da}
+  .rowlink .dir{font-weight:750;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .rowlink .extra{font-size:12px;color:var(--muted);white-space:nowrap}
+
+  .feed{display:flex;flex-direction:column;gap:8px}
+  .feedRow{
+    display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;width:100%;text-align:left;
+    background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--ink)
+  }
+  .feedRow:hover{border-color:#b9c7da}
+  .feedRow .l1{display:flex;gap:8px;align-items:center;min-width:0}
+  .feedRow .l1 b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feedRow .l2{grid-column:2;font-size:13px;color:#44505f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feedRow .when{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;grid-row:1 / span 2;grid-column:3}
+  .feedRow .pill.id{grid-row:1 / span 2}
+
+  /* --- Formulario --- */
+  .form{max-width:720px;margin:0 auto}
+  .field{margin:0 0 16px}
+  .field > label, .flabel{display:block;font-size:12px;font-weight:800;color:#556172;margin:0 0 6px}
+  .field input[type="text"], .field input[type="date"], .field input[type="number"], .field input[type="search"],
+  .field textarea, .field select{
+    width:100%;border:1px solid #d9e0e9;border-radius:11px;padding:12px 12px;background:#fbfcfe;color:var(--ink);
+    outline:none;font-size:16px
+  }
+  .field textarea{min-height:90px;resize:vertical}
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:#8da6c9;box-shadow:0 0 0 3px rgba(23,56,111,.08)}
+  .field input[readonly]{background:#f1f4f8;color:#44505f}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .checkline{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:650;cursor:pointer}
+  .checkline input{width:20px;height:20px;margin:0;accent-color:var(--ok);flex:0 0 auto}
+  .counter{float:right;font-weight:650;color:var(--muted)}
+  .propBox{margin-top:8px;border-radius:11px;padding:11px 12px;font-size:14px;font-weight:700}
+  .propBox.ok{background:#effaf4;border:1px solid #cbead9;color:#116a42}
+  .propBox.new{background:#fff6e6;border:1px solid #f3dcae;color:#7a4f06}
+  .propBox.bad{background:#fff1f2;border:1px solid #f1c5ca;color:#a72e39}
+  .autoLine{font-size:12px;color:var(--muted);margin:0 0 16px;padding:10px 12px;background:#f7f9fc;border-radius:11px;border:1px solid var(--line)}
+  .formFoot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+  .formFoot .btn{min-height:46px}
+
+  .pickRow{display:flex;gap:10px;flex-wrap:wrap}
+  .pickRow .btn{min-height:46px}
+  .previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-top:12px}
+  .pv{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f1f4f8;aspect-ratio:1/1}
+  .pv img{width:100%;height:100%;object-fit:cover;display:block}
+  .pv .ph{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    padding:8px 8px 24px;text-align:center;font-size:10px;font-weight:700;color:#556172;word-break:break-all;overflow:hidden
+  }
+  .pv .ph svg{width:26px;height:26px;color:#8794a6}
+  .pv .x{
+    position:absolute;top:5px;right:5px;width:28px;height:28px;border-radius:999px;border:0;
+    background:rgba(8,18,35,.66);color:white;font-size:16px;line-height:1;display:grid;place-items:center
+  }
+  .pv .tag{
+    position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-size:10px;font-weight:800;color:white;
+    background:rgba(8,18,35,.66);text-align:center
+  }
+  .pv.big{border-color:#f1c5ca}
+  .pv.big .tag{background:#b8323f}
+
+  /* --- Progreso y resultado --- */
+  .bar{height:12px;background:var(--soft);border-radius:999px;overflow:hidden;margin:14px 0 8px}
+  .bar > div{height:100%;width:0;background:linear-gradient(90deg,#84c9a7,#238c5b);transition:width .25s ease}
+  .okBig{
+    width:56px;height:56px;border-radius:999px;background:#effaf4;border:1px solid #cbead9;color:#157548;
+    display:grid;place-items:center;margin:0 auto 12px
+  }
+  .okBig svg{width:28px;height:28px}
+  .failList{margin:14px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;text-align:left}
+  .failList li{background:#fff1f2;border:1px solid #f1c5ca;border-radius:11px;padding:10px 12px;font-size:13px;color:#7c1d27}
+  .failList li b{display:block;color:#5b141c;word-break:break-all}
+  .resBtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+  .resBtns .btn{min-height:46px}
+
+  /* --- Historial --- */
+  .propHead{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  .propHead .big{font-size:22px;font-weight:900;line-height:1.2}
+  .propHead .big .num{color:var(--navy);font-variant-numeric:tabular-nums}
+  .propHead .meta{font-size:13px;color:var(--muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .propHead .meta a{color:var(--navy);font-weight:750}
+  .headBtns{display:flex;gap:8px;flex-wrap:wrap}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:#fff;color:#44505f;border-radius:999px;padding:7px 12px;
+    font-size:12px;font-weight:800
+  }
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .dates{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);font-weight:700;margin-left:auto;flex-wrap:wrap}
+  .dates input{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:#fff;color:var(--ink);font-size:13px}
+
+  .events{display:flex;flex-direction:column;gap:12px}
+  .ev{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 5px 20px rgba(16,41,90,.05);overflow:hidden}
+  .evHead{display:block;width:100%;text-align:left;background:none;border:0;padding:15px 16px 12px;color:var(--ink)}
+  .evTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .evTop .date{font-weight:900;font-variant-numeric:tabular-nums}
+  .evTop .desc{font-weight:750;flex:1;min-width:160px}
+  .evTop .chev{margin-left:auto;color:#9aa6b6;transition:transform .2s ease;display:grid}
+  .evTop .chev svg{width:20px;height:20px}
+  .ev.open .evTop .chev{transform:rotate(180deg)}
+  .evMeta{font-size:12px;color:var(--muted);margin-top:7px;display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center}
+  .evMeta .novis{color:#a72e39;font-weight:800;display:inline-flex;gap:5px;align-items:center}
+  .evMeta .novis svg{width:15px;height:15px}
+  .evLink{font-size:12px;color:#1c4f93;font-weight:700;margin-top:7px}
+  .strip{display:flex;gap:8px;padding:0 16px 14px;overflow:hidden}
+  .strip .thumb{width:76px;height:76px;flex:0 0 auto}
+  .strip .more{
+    width:76px;height:76px;border-radius:12px;background:var(--soft);color:#556172;font-weight:850;font-size:14px;
+    display:grid;place-items:center;flex:0 0 auto
+  }
+  .thumb{
+    position:relative;display:block;border-radius:12px;overflow:hidden;background:#e9eef5;border:1px solid var(--line);
+    aspect-ratio:1/1;text-decoration:none
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .ph{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    padding:6px;text-align:center;font-size:10px;font-weight:700;color:#556172;word-break:break-all;line-height:1.2
+  }
+  .thumb .ph svg{width:24px;height:24px;color:#8794a6;flex:0 0 auto}
+  .thumb.sinimg img{display:none}
+  .thumb:not(.sinimg):not(.file) .ph{display:none}
+
+  .evBody{display:none;border-top:1px solid var(--line);padding:16px;background:#fbfcfe}
+  .ev.open .evBody{display:block}
+  .ev.open .strip{display:none}
+  .notes{white-space:pre-wrap;font-size:14px;line-height:1.5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;margin:0 0 16px}
+  .facts div{font-size:13px}
+  .facts dt{font-size:11px;font-weight:800;color:#556172;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+  .facts dd{margin:0;font-weight:650;word-break:break-word}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+  .evActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .warn{background:#fff6e6;border:1px solid #f3dcae;color:#7a4f06;border-radius:11px;padding:10px 12px;font-size:13px;font-weight:650;margin-bottom:12px}
+
+  /* --- Informe --- */
+  .pick{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}
+  .pick + .pick{margin-top:8px}
+  .pick input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--ok);flex:0 0 auto}
+  .pick.off{background:#f7f9fc;cursor:not-allowed}
+  .pick.off .pickMain{opacity:.55}
+  .pickMain{min-width:0;flex:1}
+  .pickMain .t{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:750}
+  .pickMain .s{font-size:12px;color:var(--muted);margin-top:4px}
+  .pick .novis{font-size:12px;font-weight:800;color:#a72e39;margin-top:4px}
+  .stickyFoot{
+    position:sticky;bottom:0;background:linear-gradient(180deg,rgba(244,247,251,0),var(--bg) 30%);
+    padding:18px 0 8px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap
+  }
+
+  /* --- Control y papelera --- */
+  .ctl{margin-bottom:14px;padding:0;overflow:hidden}
+  .ctl summary{
+    list-style:none;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:center;font-weight:850;font-size:15px
+  }
+  .ctl summary::-webkit-details-marker{display:none}
+  .ctl summary .n{
+    min-width:34px;height:34px;border-radius:10px;background:#eaf0fb;color:#0e2149;display:grid;place-items:center;
+    font-size:14px;font-weight:900;padding:0 8px
+  }
+  .ctl summary .n.zero{background:#effaf4;color:#157548}
+  .ctl summary small{display:block;font-weight:550;color:var(--muted);font-size:12px;margin-top:2px}
+  .ctl .rows{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px}
+
+  /* --- Modales, avisos --- */
+  .modal-ov{
+    position:fixed;inset:0;background:rgba(8,18,35,.52);display:none;
+    align-items:center;justify-content:center;z-index:200;padding:16px;
+  }
+  .modal-ov.show{display:flex}
+  #confirmOv{z-index:220}   /* la confirmación va siempre arriba de cualquier otra ventana */
+  .modal-card{width:min(520px,100%);border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 25px 70px rgba(0,0,0,.3);max-height:92vh;overflow-y:auto}
+  .modalHead{padding:16px 20px;background:var(--navy);color:white}
+  .modalHead.red{background:#9e2732}
+  .modalHead h2{margin:0;font-size:17px}
+  .modalBody{padding:18px 20px;background:white;font-size:14px;line-height:1.5}
+  .modalFoot{display:flex;justify-content:flex-end;gap:8px;padding:0 20px 18px;background:white;flex-wrap:wrap}
+  .modalFoot .btn{min-height:44px}
+  .divider{height:1px;background:var(--line);margin:18px 0}
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,10px);background:#11264d;color:white;padding:12px 16px;border-radius:12px;
+    box-shadow:var(--shadow);font-size:13px;font-weight:750;opacity:0;pointer-events:none;transition:.2s;z-index:300;max-width:min(92vw,520px);text-align:center
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.err{background:#7c1d27}
+  .busy{
+    position:fixed;inset:0;background:rgba(244,247,251,.86);display:none;z-index:250;
+    align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px;text-align:center;
+    color:var(--navy);font-weight:800
+  }
+  .busy.show{display:flex}
+  .busy small{font-weight:600;color:var(--muted);max-width:340px}
+  .spin{width:40px;height:40px;border-radius:50%;border:4px solid rgba(16,41,90,.15);border-top-color:var(--ok);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ .spin{animation:none} }
+
+  @media (max-width:720px){
+    .app{padding:10px}
+    .topbar{border-radius:16px;padding:14px 14px 10px}
+    .brand{gap:11px}
+    .brand img{height:24px}
+    .brand .sep{height:28px}
+    .brand h1{font-size:19px}
+    .brand p{display:none}
+    .userchip b{max-width:120px;font-size:11px}
+    .hero{grid-template-columns:1fr}
+    .hero .btn.big{width:100%;order:-1;min-height:54px}
+    .card{padding:14px}
+    .two{grid-template-columns:1fr}
+    .formFoot{position:sticky;bottom:0;background:#fff;margin:20px -14px -14px;padding:12px 14px;border-radius:0 0 var(--radius) var(--radius)}
+    .formFoot .btn{flex:1}
+    .pickRow .btn{flex:1}
+    .feedRow{grid-template-columns:auto 1fr}
+    .feedRow .when{grid-column:2;grid-row:3;text-align:left}
+    .feedRow .when br{display:none}
+    .feedRow .when .who::before{content:"\00B7\00A0"}
+    .feedRow .pill.id{grid-row:1 / span 3}
+    .facts{grid-template-columns:1fr 1fr}
+    .dates{margin-left:0;width:100%}
+    .dates input{flex:1;min-width:0}
+    .headBtns{width:100%}
+    .headBtns .btn{flex:1;min-height:44px}
+    .strip .thumb,.strip .more{width:64px;height:64px}
+    .grid{grid-template-columns:repeat(3,1fr)}
+    .evActions .btn{flex:1;min-height:44px}
+    .stickyFoot .btn{width:100%;min-height:50px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topRow">
+      <div class="brand" data-a="ir" data-v="inicio" title="Ir al inicio">
+        <img id="logoJB" src="https://majaxu.github.io/Biprop/logo-jb-blanco.png" alt="Juárez Beltrán" hidden>
+        <span class="sep" id="logoSep" hidden></span>
+        <div>
+          <h1>Biprop</h1>
+          <p>Bitácora de propiedades · fotos y videos por evento</p>
+        </div>
+      </div>
+      <div class="userchip" id="userChip" hidden>
+        <b id="userEmail"></b>
+        <span class="role" id="userRole"></span>
+      </div>
+    </div>
+    <nav class="nav" id="nav" hidden>
+      <button type="button" data-a="ir" data-v="inicio">Inicio</button>
+      <button type="button" data-a="ir" data-v="cargar">Cargar evento</button>
+      <button type="button" data-a="ir" data-v="control">Control</button>
+      <button type="button" data-a="ir" data-v="papelera" id="navPapelera" hidden>Papelera</button>
+    </nav>
+  </header>
+
+  <main id="vista"><div class="loader">Cargando…</div></main>
+</div>
+
+<div class="modal-ov" id="confirmOv">
+ <div class="modal-card" style="max-width:440px">
+  <div class="modalHead" id="confirmHead"><h2 id="confirmTitle"></h2></div>
+  <div class="modalBody"><p id="confirmMsg" style="margin:0"></p></div>
+  <div class="modalFoot">
+    <button type="button" class="btn ghost" id="confirmNo">Cancelar</button>
+    <button type="button" class="btn danger" id="confirmYes">Aceptar</button>
+  </div>
+ </div>
+</div>
+
+<div class="modal-ov" id="propOv">
+ <div class="modal-card">
+  <div class="modalHead"><h2>Editar propiedad</h2></div>
+  <div class="modalBody">
+    <div class="field">
+      <label for="pDir">Dirección</label>
+      <input id="pDir" type="text" maxlength="200">
+    </div>
+    <button type="button" class="btn navy" data-a="guardarDireccion">Guardar dirección</button>
+    <div class="divider"></div>
+    <div class="field">
+      <label for="pNuevoId">Cambiar el número (ID)</label>
+      <input id="pNuevoId" type="text" inputmode="numeric" maxlength="4" placeholder="Número nuevo">
+      <div class="hint">Usalo si la propiedad pasó a Mirol o si se cargó con un número equivocado. Cambia el nombre de la carpeta en Drive y de todos sus archivos. Puede tardar un rato.</div>
+    </div>
+    <button type="button" class="btn ghost" data-a="renumerar">Cambiar número</button>
+  </div>
+  <div class="modalFoot">
+    <button type="button" class="btn ghost" data-a="cerrarProp">Cerrar</button>
+  </div>
+ </div>
+</div>
+
+<div class="busy" id="busy"><div class="spin"></div><div id="busyMsg"></div><small id="busySub"></small></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  /* ---------------------------------------------------------------- */
+  /* Estado                                                            */
+  /* ---------------------------------------------------------------- */
+  let ME = { email:"", esAdmin:false, puedeBorrar:false };
+  let CFG = { tipos:[], origenes:[], maxMb:30, descMax:80, avisoFotos:150, idNuevasDesde:5000, idMax:9999 };
+  let PROPS = [];        // propiedades activas {id, direccion}
+  let ULTIMOS = [];      // últimos eventos cargados
+  let SIGUIENTE = 5000;  // siguiente ID libre para propiedades nuevas
+  let HOY = "";
+  let VISTA = { v:"inicio", p:{} };
+  let HIST = null;       // historial abierto {propiedad, eventos}
+  let FILTRO = { tipos:{}, desde:"", hasta:"" };
+  let ABIERTOS = {};     // eventos desplegados en el historial
+  let FORM = null;       // estado del formulario de carga
+  let SUBIENDO = false;
+  let INFORME = {};      // eventos tildados para el informe
+
+  const $ = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>[...root.querySelectorAll(s)];
+
+  /* ---------------------------------------------------------------- */
+  /* Utilidades                                                        */
+  /* ---------------------------------------------------------------- */
+  function esc(s=""){
+    return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+  }
+  const pad4 = n => ("0000"+Number(n)).slice(-4);
+  // "2026-03-15" -> "15/03/2026"
+  function fechaAr(ymd){
+    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd||""));
+    return m ? m[3]+"/"+m[2]+"/"+m[1] : "";
+  }
+  // "2026-10-05T14:03:22" -> "05/10/2026 14:03"
+  function fechaHora(iso){
+    const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(iso||""));
+    return m ? m[3]+"/"+m[2]+"/"+m[1]+" "+m[4]+":"+m[5] : "";
+  }
+  const usuario = email => String(email||"").split("@")[0] || "\u2014";
+  const etiqueta = valor => { const t=CFG.tipos.find(x=>x.valor===valor); return t?t.etiqueta:valor; };
+  const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036F]/g,"");
+  const esImagen = mime => String(mime||"").indexOf("image/")===0;
+  const esVideo = mime => String(mime||"").indexOf("video/")===0;
+  function peso(bytes){
+    const mb=bytes/1048576;
+    return mb>=1 ? (Math.round(mb*10)/10)+" MB" : Math.max(1,Math.round(bytes/1024))+" KB";
+  }
+  const plural = (n, uno, muchos) => n+" "+(n===1?uno:muchos);
+  const propDe = id => PROPS.find(p=>p.id===Number(id));
+  const eventoHist = id => HIST ? HIST.eventos.find(e=>e.id_evento===id) : null;
+  const urlArchivo = id => "https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view";
+
+  // Tipos de archivo que acepta el selector. Van en textos comunes, fuera de las plantillas de HTML.
+  const ACEPTA_TODO = "image/*,video/*";
+  const ACEPTA_FOTO = "image/*";
+
+  const ICON = {
+    chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+    video:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>',
+    file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+    photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>',
+    camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    eyeoff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 6.2A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a15 15 0 0 1-3 3.4M6.5 7.6A15 15 0 0 0 3 12s4 6 9 6a8.6 8.6 0 0 0 3.4-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    drive:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+  };
+
+  function toast(msg, isErr=false){
+    const t=$("#toast"); t.textContent=msg;
+    t.classList.toggle("err", !!isErr);
+    t.classList.add("show");
+    clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"), isErr?5200:2800);
+  }
+  const mensaje = err => String((err && err.message) || err || "Error").replace(/^Error:\s*/,"");
+  function fallo(err){ toast(mensaje(err), true); }
+
+  // Confirmación propia (no usamos confirm() nativo: queda bloqueado dentro de iframes).
+  function askConfirm(opts){
+    const ov=$("#confirmOv"), yes=$("#confirmYes"), no=$("#confirmNo");
+    $("#confirmTitle").textContent=opts.titulo||"Confirmar";
+    $("#confirmMsg").textContent=opts.msg||"";
+    $("#confirmHead").classList.toggle("red", !!opts.peligro);
+    yes.textContent=opts.si||"Aceptar";
+    yes.className="btn "+(opts.peligro?"danger":"navy");
+    ov.classList.add("show");
+    const close=()=>{ ov.classList.remove("show"); yes.onclick=null; no.onclick=null; ov.onclick=null; };
+    yes.onclick=()=>{ close(); opts.onSi(); };
+    no.onclick=close;
+    ov.onclick=e=>{ if(e.target===ov) close(); };
+  }
+  function busy(on, msg, sub){
+    $("#busy").classList.toggle("show", !!on);
+    $("#busyMsg").textContent=msg||"";
+    $("#busySub").textContent=sub||"";
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Puente con el backend de Apps Script                             */
+  /* ---------------------------------------------------------------- */
+  const server = (fn, ...args) => new Promise((resolve, reject) => {
+    if(!(window.google && google.script && google.script.run)){
+      return reject(new Error("Esta app debe abrirse desde su URL de Google (no como archivo local)."));
+    }
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+  });
+
+  // Si el servidor no contesta en un tiempo razonable, se da por fallado (para no quedar esperando para siempre).
+  function conTope(promesa, ms){
+    return Promise.race([promesa, new Promise((_, rej)=>setTimeout(()=>rej(new Error("El servidor tardó demasiado en responder.")), ms))]);
+  }
+
+  function fileToBase64(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(String(r.result).split(",")[1]||"");
+      r.onerror=()=>rej(new Error("No se pudo leer el archivo."));
+      r.readAsDataURL(file);
+    });
+  }
+
+  function aplicarInicio(res){
+    ME = { email:res.email, esAdmin:res.esAdmin, puedeBorrar:res.puedeBorrar };
+    CFG = res.config;
+    PROPS = res.propiedades || [];
+    ULTIMOS = res.ultimos || [];
+    SIGUIENTE = res.siguienteId;
+    HOY = res.hoy;
+  }
+  function refrescarInicio(){ return server("getInicio").then(aplicarInicio); }
+
+  /* ---------------------------------------------------------------- */
+  /* Miniaturas                                                       */
+  /* Primero se prueba el link directo de Drive. Si el navegador lo   */
+  /* bloquea (pasa en iPhone), se le piden al backend.                */
+  /* ---------------------------------------------------------------- */
+  const MINI = {};                 // id de archivo -> data URL ya pedida
+  let directoOk = 0, directoMal = 0;
+  const colaMini = {};             // id de evento -> { id de archivo: true }
+  let timerMini = null;
+  const directoFalla = () => directoMal >= 2 && directoOk === 0;
+
+  function thumbHtml(a, idEvento){
+    const href = urlArchivo(a.id);
+    if(esImagen(a.mime)){
+      const src = MINI[a.id] || (directoFalla() ? "" : "https://drive.google.com/thumbnail?id="+encodeURIComponent(a.id)+"&sz=w400");
+      return `<a class="thumb${src?"":" sinimg"}" href="${href}" target="_blank" rel="noopener" title="${esc(a.nombre)}">
+        <img alt="" loading="lazy" referrerpolicy="no-referrer" data-fid="${esc(a.id)}" data-ev="${esc(idEvento)}" ${MINI[a.id]?'data-plan="b"':""} ${src?`src="${src}"`:""}>
+        <span class="ph">${ICON.photo}<span>${esc(a.nombre)}</span></span></a>`;
+    }
+    return `<a class="thumb file" href="${href}" target="_blank" rel="noopener" title="${esc(a.nombre)}">
+      <span class="ph">${esVideo(a.mime)?ICON.video:ICON.file}<span>${esc(a.nombre)}</span></span></a>`;
+  }
+  function encolarMini(img){
+    if(img.dataset.plan==="b") return;
+    img.dataset.plan="b";
+    img.closest(".thumb").classList.add("sinimg");
+    const ev=img.dataset.ev, fid=img.dataset.fid;
+    if(MINI[fid]){ ponerMini(fid, MINI[fid]); return; }
+    (colaMini[ev] = colaMini[ev] || {})[fid]=true;
+    clearTimeout(timerMini); timerMini=setTimeout(pedirMiniaturas, 200);
+  }
+  function ponerMini(fid, dataUrl){
+    $$("img[data-fid]").filter(i=>i.dataset.fid===fid).forEach(img=>{
+      if(!dataUrl) return;
+      img.src=dataUrl;
+      img.closest(".thumb").classList.remove("sinimg");
+    });
+  }
+  function pedirMiniaturas(){
+    Object.keys(colaMini).forEach(ev=>{
+      const ids=Object.keys(colaMini[ev]); delete colaMini[ev];
+      for(let i=0;i<ids.length;i+=12){
+        server("getMiniaturas", ev, ids.slice(i,i+12))
+          .then(res=>{ Object.keys(res||{}).forEach(fid=>{ if(res[fid]){ MINI[fid]=res[fid]; ponerMini(fid,res[fid]); } }); })
+          .catch(()=>{});
+      }
+    });
+  }
+  // Los eventos "error" y "load" de las imágenes no burbujean: se escuchan en fase de captura.
+  document.addEventListener("error", e=>{
+    const t=e.target;
+    if(t && t.tagName==="IMG" && t.dataset && t.dataset.fid && t.dataset.plan!=="b"){ directoMal++; encolarMini(t); }
+  }, true);
+  document.addEventListener("load", e=>{
+    const t=e.target;
+    if(t && t.tagName==="IMG" && t.dataset && t.dataset.fid && t.dataset.plan!=="b") directoOk++;
+  }, true);
+  // Después de dibujar: las imágenes sin src (cuando ya se sabe que el link directo falla) van directo al plan B.
+  function revisarMiniaturas(){
+    $$("img[data-fid]").forEach(img=>{ if(!img.getAttribute("src")) encolarMini(img); });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Navegación                                                       */
+  /* ---------------------------------------------------------------- */
+  function ir(v, p, opts){
+    if(SUBIENDO){ toast("Esperá a que termine la subida."); return; }
+    VISTA = { v:v, p:p||{} };
+    $("#toast").classList.remove("show");
+    if(!(opts && opts.sinHistorial)){
+      try{ google.script.history.push({ v:v, p:p||{} }); }catch(e){}
+    }
+    $$("#nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===v || (b.dataset.v==="inicio" && (v==="historial"||v==="informe"))));
+    window.scrollTo(0,0);
+    render();
+  }
+  try{
+    google.script.history.setChangeHandler(e=>{
+      // La primera pantalla no tiene estado guardado: volver hasta ahí lleva al inicio.
+      const s=(e && e.state) || {};
+      ir(s.v || "inicio", s.p || {}, { sinHistorial:true });
+    });
+  }catch(e){}
+
+  function render(){
+    const el=$("#vista");
+    if(VISTA.v==="inicio") return vistaInicio(el);
+    if(VISTA.v==="cargar") return vistaCargar(el);
+    if(VISTA.v==="historial") return vistaHistorial(el);
+    if(VISTA.v==="informe") return vistaInforme(el);
+    if(VISTA.v==="control") return vistaControl(el);
+    if(VISTA.v==="papelera") return vistaPapelera(el);
+    vistaInicio(el);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Inicio                                                           */
+  /* ---------------------------------------------------------------- */
+  function vistaInicio(el){
+    el.innerHTML = `
+      <section class="hero">
+        <div class="search">
+          <input id="q" type="search" placeholder="Buscar propiedad por ID o dirección" autocomplete="off">
+          <div class="results" id="qres"></div>
+        </div>
+        <button type="button" class="btn navy big" data-a="ir" data-v="cargar">${ICON.plus} Cargar evento</button>
+      </section>
+      <h2 class="sec">Últimos eventos cargados</h2>
+      <div class="feed" id="feed"></div>`;
+    $("#q").addEventListener("input", buscar);
+    $("#feed").innerHTML = ULTIMOS.length ? ULTIMOS.map(e=>`
+      <button type="button" class="feedRow" data-a="historial" data-id="${e.id_propiedad}" data-ev="${esc(e.id_evento)}">
+        <span class="pill id">${pad4(e.id_propiedad)}</span>
+        <span class="l1"><b>${esc(e.direccion)}</b></span>
+        <span class="when">${fechaHora(e.fecha_carga)}<br><span class="who">${esc(usuario(e.cargado_por))}</span></span>
+        <span class="l2"><span class="pill t-${esc(e.tipo)}">${esc(etiqueta(e.tipo))}</span> ${esc(e.descripcion)}</span>
+      </button>`).join("")
+      : `<div class="empty"><strong>Todavía no hay eventos cargados.</strong>Tocá "Cargar evento" para subir las primeras fotos.</div>`;
+  }
+
+  function buscar(){
+    const raw=$("#q").value.trim(), box=$("#qres");
+    if(!raw){ box.innerHTML=""; return; }
+    const q=norm(raw), num=/^\d{1,4}$/.test(raw) ? Number(raw) : null;
+    let res=PROPS.filter(p => (num!==null && (p.id===num || pad4(p.id).indexOf(raw)!==-1)) || norm(p.direccion).indexOf(q)!==-1);
+    res.sort((a,b)=> (num!==null ? (b.id===num)-(a.id===num) : 0) || a.id-b.id);
+    const total=res.length; res=res.slice(0,12);
+    let h=res.map(p=>`
+      <button type="button" class="rowlink" data-a="historial" data-id="${p.id}">
+        <span class="pill id">${pad4(p.id)}</span><span class="dir">${esc(p.direccion)}</span><span class="extra">Ver historial</span>
+      </button>`).join("");
+    if(total>res.length) h+=`<div class="hint">Hay ${total} resultados. Escribí algo más para afinar.</div>`;
+    if(!total){
+      h=`<div class="empty" style="padding:22px"><strong>No encontramos esa propiedad.</strong>
+        Si todavía no tiene nada cargado, se crea al cargar su primer evento.<br><br>
+        <button type="button" class="btn navy" data-a="ir" data-v="cargar" ${num!==null?`data-id="${num}"`:""}>Cargar evento</button></div>`;
+    }
+    box.innerHTML=h;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Cargar / editar evento                                           */
+  /* ---------------------------------------------------------------- */
+  function vistaCargar(el){
+    const ev = VISTA.p.editar ? eventoHist(VISTA.p.editar) : null;
+    if(VISTA.p.editar && (!ev || !ME.esAdmin)){ ir("inicio"); return; }
+    FORM = { modo: ev?"editar":"nuevo", ev: ev, archivos: [], reclamosDe: null };
+    const idIni = ev ? ev.id_propiedad : (VISTA.p.id || "");
+    const coarse = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
+
+    el.innerHTML = `
+      <form class="card form" id="evForm" novalidate>
+        <h2 class="sec" style="margin-top:0">${ev?"Editar evento":"Cargar evento"}</h2>
+        <div class="autoLine">${ev
+          ? `Cargado el ${fechaHora(ev.fecha_carga)} por ${esc(ev.cargado_por)} · Evento ${esc(ev.id_evento)}`
+          : `Fecha de carga: se registra sola al guardar · Cargado por: ${esc(ME.email)}`}</div>
+
+        <div class="field">
+          <label for="fId">ID de la propiedad *</label>
+          <input id="fId" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="El número de Mirol" value="${idIni?esc(idIni):""}">
+          ${ev?"":`<label class="checkline" style="margin-top:10px"><input type="checkbox" id="fNueva"> Es una propiedad nueva, todavía no está en Mirol</label>`}
+          <div id="propBox"></div>
+          <div id="dirWrap" hidden style="margin-top:10px">
+            <label class="flabel" for="fDir">Dirección de la propiedad nueva *</label>
+            <input id="fDir" type="text" maxlength="200" placeholder="Ej. Av. Colón 1234, Córdoba">
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label for="fTipo">Tipo de evento *</label>
+            <select id="fTipo">
+              <option value="">Elegir\u2026</option>
+              ${CFG.tipos.map(t=>`<option value="${esc(t.valor)}" ${ev&&ev.tipo===t.valor?"selected":""}>${esc(t.etiqueta)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label for="fFecha">Fecha del evento *</label>
+            <input id="fFecha" type="date" value="${esc(ev?ev.fecha_evento:HOY)}" max="2099-12-31">
+            <div class="hint">Cuándo ocurrió, no cuándo se carga.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="fDesc">Descripción corta * <span class="counter" id="descCount"></span></label>
+          <input id="fDesc" type="text" maxlength="${CFG.descMax}" placeholder="Ej. Ingreso Pérez, Humedad baño, Fotos para publicar" value="${ev?esc(ev.descripcion):""}">
+          <div class="hint">Va al nombre de la carpeta en Drive.</div>
+        </div>
+
+        <div class="field">
+          <label for="fOrigen">Origen: quién produjo el material *</label>
+          <select id="fOrigen">
+            <option value="">Elegir\u2026</option>
+            ${CFG.origenes.map(o=>`<option value="${esc(o)}" ${ev&&ev.origen===o?"selected":""}>${esc(o.charAt(0).toUpperCase()+o.slice(1))}</option>`).join("")}
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fNotas">Notas</label>
+          <textarea id="fNotas" maxlength="5000" placeholder="Opcional">${ev?esc(ev.notas):""}</textarea>
+        </div>
+
+        <div class="field">
+          <label class="checkline"><input type="checkbox" id="fVisible" ${!ev||ev.visible_propietario?"checked":""}> Visible para el propietario</label>
+          <div class="hint">Si lo destildás, este evento y sus notas no se ofrecen en el informe para el propietario.</div>
+        </div>
+
+        <div class="field" id="reclamoWrap" hidden>
+          <label for="fReclamo">Reclamo al que responde esta reparación</label>
+          <select id="fReclamo"><option value="">Ninguno</option></select>
+          <div class="hint" id="reclamoHint"></div>
+        </div>
+
+        ${ev?`<div class="field"><span class="flabel">Archivos del evento</span><div class="previews" id="existentes"></div></div>`:""}
+
+        <div class="field">
+          <span class="flabel">${ev?"Agregar fotos y videos":"Fotos y videos *"}</span>
+          <div class="pickRow">
+            <button type="button" class="btn ghost" data-a="elegir">${ICON.photo} Elegir fotos y videos</button>
+            ${coarse?`<button type="button" class="btn ghost" data-a="camara">${ICON.camera} Sacar foto</button>`:""}
+          </div>
+          <input type="file" id="fFiles" accept="${ACEPTA_TODO}" multiple hidden>
+          <input type="file" id="fCam" accept="${ACEPTA_FOTO}" capture="environment" hidden>
+          <div class="hint">Podés elegir varios a la vez. Cada archivo puede pesar hasta ${CFG.maxMb} MB.</div>
+          <div class="previews" id="previews"></div>
+        </div>
+
+        <div class="formFoot">
+          <button type="button" class="btn ghost" data-a="cancelarForm">Cancelar</button>
+          <button type="submit" class="btn navy" id="fGuardar">${ev?"Guardar cambios":"Guardar evento"}</button>
+        </div>
+      </form>
+      <div id="progreso" hidden></div>`;
+
+    $("#fId").addEventListener("input", ()=>{ $("#fId").value=$("#fId").value.replace(/\D/g,""); actualizarProp(); });
+    if($("#fNueva")) $("#fNueva").addEventListener("change", ()=>{
+      // Propiedad nueva con el ID vacío: se propone el siguiente número libre (se puede cambiar).
+      if($("#fNueva").checked && !$("#fId").value.trim()) $("#fId").value=String(SIGUIENTE);
+      actualizarProp();
+      if($("#fNueva").checked && !$("#dirWrap").hidden) $("#fDir").focus();
+    });
+    $("#fTipo").addEventListener("change", cargarReclamos);
+    $("#fDesc").addEventListener("input", contarDesc);
+    $("#fFiles").addEventListener("change", e=>{ agregarArchivos(e.target.files); e.target.value=""; });
+    $("#fCam").addEventListener("change", e=>{ agregarArchivos(e.target.files); e.target.value=""; });
+    $("#evForm").addEventListener("submit", e=>{ e.preventDefault(); guardarEvento(); });
+    contarDesc(); actualizarProp(); dibujarExistentes(); dibujarPreviews();
+    if(!idIni && !coarse) $("#fId").focus();
+  }
+
+  function contarDesc(){ $("#descCount").textContent=$("#fDesc").value.length+" / "+CFG.descMax; }
+
+  // Muestra la dirección debajo del ID para confirmar; si el ID no existe, ofrece crear la propiedad ahí mismo.
+  function actualizarProp(){
+    const raw=$("#fId").value.trim(), box=$("#propBox"), dir=$("#dirWrap");
+    const marcada=$("#fNueva") && $("#fNueva").checked;
+    dir.hidden=true; FORM.propEstado="vacia";
+    if(!raw){ box.innerHTML=`<div class="hint">Escribí el número de la propiedad. Si es nueva y no tiene número, marcá la casilla.</div>`; cargarReclamos(); return; }
+    const n=Number(raw);
+    if(n<1 || n>CFG.idMax){ box.innerHTML=`<div class="propBox bad">El ID tiene que ser un número entre 1 y ${CFG.idMax}.</div>`; FORM.propEstado="mal"; cargarReclamos(); return; }
+    const p=propDe(n);
+    if(p){
+      FORM.propEstado = marcada ? "choque" : "existe";
+      box.innerHTML = marcada
+        ? `<div class="propBox bad">El ID ${pad4(n)} ya existe: ${esc(p.direccion)}. Si es otra propiedad, usá otro número; si es esta, destildá "propiedad nueva".</div>`
+        : `<div class="propBox ok">${pad4(n)} · ${esc(p.direccion)}</div>`;
+    }else if(FORM.modo==="editar"){
+      FORM.propEstado="mal";
+      box.innerHTML=`<div class="propBox bad">No existe ninguna propiedad con el ID ${pad4(n)}.</div>`;
+    }else{
+      FORM.propEstado="nueva";
+      box.innerHTML=`<div class="propBox new">Propiedad nueva: se va a crear con el ID ${pad4(n)}.${n<CFG.idNuevasDesde?" Revisá que sea el mismo número que tiene en Mirol.":""}</div>`;
+      dir.hidden=false;
+    }
+    cargarReclamos();
+  }
+
+  // El desplegable de reclamo solo aparece si el tipo es REPARACION; lista los RECLAMO de la misma propiedad.
+  function cargarReclamos(){
+    const wrap=$("#reclamoWrap"), sel=$("#fReclamo"), hint=$("#reclamoHint");
+    if(!wrap) return;
+    const id=Number($("#fId").value.trim());
+    if($("#fTipo").value!=="REPARACION"){ wrap.hidden=true; return; }
+    wrap.hidden=false;
+    const actual = sel.value || (FORM.ev && FORM.ev.reclamo_vinculado) || "";
+    const llenar = lista => {
+      const propios = lista.filter(r=>!FORM.ev || r.id_evento!==FORM.ev.id_evento);
+      sel.innerHTML=`<option value="">Ninguno</option>`+propios.map(r=>
+        `<option value="${esc(r.id_evento)}" ${r.id_evento===actual?"selected":""}>${fechaAr(r.fecha_evento)} · ${esc(r.descripcion)}</option>`).join("");
+      hint.textContent = propios.length ? "" : "Esta propiedad no tiene reclamos cargados.";
+    };
+    if(FORM.propEstado!=="existe"){ FORM.reclamosDe=null; llenar([]); hint.textContent="Primero escribí el ID de una propiedad que ya exista."; return; }
+    if(FORM.reclamosDe===id) return;
+    FORM.reclamosDe=id;
+    if(HIST && HIST.propiedad.id===id){ llenar(HIST.eventos.filter(e=>e.tipo==="RECLAMO")); return; }
+    llenar([]); hint.textContent="Buscando reclamos\u2026";
+    server("getReclamos", id).then(lista=>{ if(FORM && FORM.reclamosDe===id) llenar(lista||[]); })
+      .catch(()=>{ hint.textContent="No se pudieron cargar los reclamos."; FORM.reclamosDe=null; });
+  }
+
+  function agregarArchivos(fileList){
+    [...fileList].forEach(f=>{
+      // LÍMITE DE TAMAÑO: lo que supera el máximo no se sube desde acá (se avisa y sigue con el resto).
+      const grande = f.size > CFG.maxMb*1024*1024;
+      let url="";
+      if(esImagen(f.type)){ try{ url=URL.createObjectURL(f); }catch(e){ url=""; } }
+      FORM.archivos.push({ file:f, url:url, estado: grande?"grande":"pendiente", motivo:"" });
+    });
+    dibujarPreviews();
+  }
+
+  function dibujarPreviews(){
+    const box=$("#previews"); if(!box) return;
+    box.innerHTML=FORM.archivos.map((a,i)=>`
+      <div class="pv ${a.estado==="grande"?"big":""}">
+        ${a.url?`<img src="${a.url}" alt="" data-pv="${i}">`:""}
+        <span class="ph" ${a.url?"hidden":""}>${esVideo(a.file.type)?ICON.video:ICON.photo}<span>${esc(a.file.name)}</span></span>
+        <span class="tag">${a.estado==="grande"?"Muy grande · ":""}${peso(a.file.size)}</span>
+        <button type="button" class="x" data-a="quitarNuevo" data-i="${i}" aria-label="Quitar">&times;</button>
+      </div>`).join("");
+    // Si el navegador no puede mostrar la vista previa (por ejemplo, fotos HEIC), se muestra el nombre.
+    $$("img[data-pv]",box).forEach(img=>img.addEventListener("error",()=>{
+      const ph=img.parentNode.querySelector(".ph"); img.remove(); if(ph) ph.hidden=false;
+    }));
+    const grandes=FORM.archivos.filter(a=>a.estado==="grande").length;
+    let aviso=$("#avisoGrandes");
+    if(!aviso){ aviso=document.createElement("div"); aviso.id="avisoGrandes"; aviso.className="warn"; aviso.style.marginTop="12px"; box.parentNode.appendChild(aviso); }
+    aviso.hidden=!grandes;
+    aviso.textContent = grandes ? (grandes===1?"Hay 1 archivo demasiado grande":"Hay "+grandes+" archivos demasiado grandes")+
+      " para subir desde acá. El resto se sube igual; a esos vas a tener que subirlos a mano a la carpeta del evento en Drive." : "";
+  }
+
+  function dibujarExistentes(){
+    const box=$("#existentes"); if(!box || !FORM.ev) return;
+    const lista=FORM.ev.archivos||[];
+    box.innerHTML = lista.length ? lista.map(a=>`
+      <div class="pv">
+        ${thumbHtml(a, FORM.ev.id_evento).replace('class="thumb','style="position:absolute;inset:0;border:0;border-radius:0" class="thumb')}
+        <button type="button" class="x" data-a="quitarExistente" data-fid="${esc(a.id)}" aria-label="Quitar">&times;</button>
+      </div>`).join("") : `<div class="hint">Este evento no tiene archivos.</div>`;
+    revisarMiniaturas();
+  }
+
+  function leerFormulario(){
+    const idRaw=$("#fId").value.trim();
+    if(!idRaw) return { error:"Escribí el ID de la propiedad.", foco:"#fId" };
+    if(FORM.propEstado==="mal") return { error:"Revisá el ID de la propiedad.", foco:"#fId" };
+    if(FORM.propEstado==="choque") return { error:"Ese ID ya existe. Usá otro número o destildá \"propiedad nueva\".", foco:"#fId" };
+    const d={ id_propiedad:Number(idRaw), tipo:$("#fTipo").value, fecha_evento:$("#fFecha").value,
+      descripcion:$("#fDesc").value.trim(), origen:$("#fOrigen").value, notas:$("#fNotas").value,
+      visible_propietario:$("#fVisible").checked,
+      reclamo_vinculado: $("#fTipo").value==="REPARACION" ? $("#fReclamo").value : "" };
+    if(FORM.propEstado==="nueva"){
+      d.direccion_nueva=$("#fDir").value.trim();
+      if(!d.direccion_nueva) return { error:"Escribí la dirección de la propiedad nueva.", foco:"#fDir" };
+    }
+    if(!d.tipo) return { error:"Elegí el tipo de evento.", foco:"#fTipo" };
+    if(!d.fecha_evento) return { error:"Elegí la fecha del evento.", foco:"#fFecha" };
+    if(!d.descripcion) return { error:"Escribí una descripción corta.", foco:"#fDesc" };
+    if(!d.origen) return { error:"Elegí quién produjo el material (origen).", foco:"#fOrigen" };
+    if(FORM.modo==="nuevo" && !FORM.archivos.length) return { error:"Agregá al menos una foto o un video.", foco:null };
+    return { datos:d };
+  }
+
+  function guardarEvento(){
+    if(SUBIENDO) return;
+    const r=leerFormulario();
+    if(r.error){ toast(r.error, true); if(r.foco){ const f=$(r.foco); if(f) f.focus(); } return; }
+    const btn=$("#fGuardar"); btn.disabled=true;
+
+    if(FORM.modo==="editar"){
+      busy(true, "Guardando cambios\u2026", "Si cambiaste fecha, tipo o descripción, se renombran la carpeta y los archivos.");
+      server("modificarEvento", FORM.ev.id_evento, r.datos)
+        .then(res=>{
+          busy(false);
+          FORM.evento=res.evento;
+          if(!FORM.archivos.length){
+            toast(res.sinCambios?"No había cambios para guardar.":"Cambios guardados.");
+            return volverAlHistorial(res.evento.id_propiedad, res.evento.id_evento);
+          }
+          return subirTodos();
+        })
+        .catch(err=>{ busy(false); btn.disabled=false; fallo(err); });
+      return;
+    }
+
+    busy(true, "Creando el evento\u2026");
+    server("crearEvento", r.datos)
+      .then(res=>{
+        busy(false);
+        if(res.yaExiste){
+          // Alguien creó esa propiedad mientras tanto: no se crea nada y se avisa.
+          btn.disabled=false;
+          return refrescarInicio().then(()=>{
+            if($("#fNueva")) $("#fNueva").checked=false;
+            actualizarProp();
+            askConfirm({ titulo:"Esa propiedad ya existe",
+              msg:"El ID "+pad4(res.propiedad.id)+" ya está usado por: "+res.propiedad.direccion+". No se guardó nada. Si es la misma propiedad, guardá de nuevo. Si es otra, cambiá el número (el siguiente libre es "+SIGUIENTE+").",
+              si:"Ver su historial", onSi:()=>ir("historial",{ id:res.propiedad.id }) });
+          });
+        }
+        FORM.evento=res.evento;
+        if(res.propiedadCreada) PROPS.push(res.propiedad);
+        return subirTodos();
+      })
+      .catch(err=>{ busy(false); btn.disabled=false; fallo(err); });
+  }
+
+  // Sube los archivos de a uno, en orden, con barra de progreso. Si uno falla, sigue con los demás.
+  async function subirTodos(){
+    SUBIENDO=true;
+    $("#toast").classList.remove("show");
+    $("#evForm").hidden=true;
+    const box=$("#progreso"); box.hidden=false;
+    const cola=FORM.archivos.filter(a=>a.estado==="pendiente"||a.estado==="error");
+    box.innerHTML=`
+      <div class="card form" style="text-align:center">
+        <h2 class="sec" style="margin-top:0">Subiendo archivos</h2>
+        <div id="pgTexto" style="font-weight:750"></div>
+        <div class="bar"><div id="pgBar"></div></div>
+        <div class="hint">No cierres esta pantalla hasta que termine.</div>
+      </div>`;
+    for(let i=0;i<cola.length;i++){
+      const a=cola[i];
+      $("#pgTexto").textContent="Archivo "+(i+1)+" de "+cola.length+": "+a.file.name;
+      $("#pgBar").style.width=Math.round(i/cola.length*100)+"%";
+      try{
+        const b64=await fileToBase64(a.file);
+        await conTope(server("subirArchivo", FORM.evento.id_evento, b64, a.file.name, a.file.type||""), 6*60*1000);
+        a.estado="ok"; a.motivo="";
+      }catch(err){
+        a.estado="error"; a.motivo=mensaje(err);
+        if(/demasiado grande/.test(a.motivo)) a.estado="grande";
+      }
+    }
+    if($("#pgBar")) $("#pgBar").style.width="100%";
+    if($("#pgTexto")) $("#pgTexto").textContent="Terminando\u2026";
+    try{ FORM.evento=await conTope(server("cerrarCarga", FORM.evento.id_evento, FORM.modo==="editar"), 2*60*1000); }catch(err){ /* la cantidad se corrige sola al abrir el historial */ }
+    SUBIENDO=false;
+    HIST=null;
+    refrescarInicio().catch(()=>{});
+    mostrarResultado();
+  }
+
+  function mostrarResultado(){
+    const ev=FORM.evento;
+    const okN=FORM.archivos.filter(a=>a.estado==="ok").length;
+    const fallidos=FORM.archivos.filter(a=>a.estado==="error");
+    const grandes=FORM.archivos.filter(a=>a.estado==="grande");
+    const msgGrande="Este archivo es demasiado grande para subirlo desde acá. Subilo a mano a la carpeta del evento en Drive.";
+    $("#progreso").innerHTML=`
+      <div class="card form" style="text-align:center">
+        <div class="okBig">${ICON.check}</div>
+        <div style="font-size:19px;font-weight:900">${FORM.modo==="editar"?"Cambios guardados":"Evento guardado"}</div>
+        <div class="muted" style="margin-top:6px">
+          <b>${pad4(ev.id_propiedad)}</b> · ${esc(ev.direccion)}<br>
+          ${fechaAr(ev.fecha_evento)} · ${esc(etiqueta(ev.tipo))} · ${esc(ev.descripcion)}<br>
+          ${FORM.archivos.length?(okN===1?"Se subió 1 archivo":"Se subieron "+okN+" archivos")+(FORM.archivos.length>okN?" de "+FORM.archivos.length:"")+".":""}
+        </div>
+        ${(fallidos.length||grandes.length)?`<ul class="failList">
+          ${grandes.map(a=>`<li><b>${esc(a.file.name)} (${peso(a.file.size)})</b>${msgGrande}</li>`).join("")}
+          ${fallidos.map(a=>`<li><b>${esc(a.file.name)}</b>No se pudo subir: ${esc(a.motivo)}</li>`).join("")}
+        </ul>`:""}
+        <div class="resBtns">
+          ${fallidos.length?`<button type="button" class="btn navy" data-a="reintentar">Reintentar los que fallaron</button>`:""}
+          <a class="btn ghost" href="${esc(ev.carpeta_url)}" target="_blank" rel="noopener">${ICON.drive} Abrir la carpeta en Drive</a>
+          ${FORM.modo==="editar"?"":`<button type="button" class="btn ghost" data-a="ir" data-v="cargar">Cargar otro</button>`}
+          <button type="button" class="btn ${fallidos.length?"ghost":"navy"}" data-a="historial" data-id="${ev.id_propiedad}" data-ev="${esc(ev.id_evento)}">Ver historial</button>
+        </div>
+      </div>`;
+  }
+
+  function volverAlHistorial(id, idEvento){
+    HIST=null; if(idEvento) ABIERTOS[idEvento]=true;
+    refrescarInicio().catch(()=>{});
+    ir("historial", { id:id });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Historial de propiedad                                           */
+  /* ---------------------------------------------------------------- */
+  function vistaHistorial(el){
+    const id=Number(VISTA.p.id);
+    if(HIST && HIST.propiedad.id===id){ dibujarHistorial(el); return; }
+    el.innerHTML=`<div class="loader">Cargando el historial de la propiedad ${pad4(id)}\u2026</div>`;
+    server("getHistorial", id)
+      .then(res=>{
+        HIST=res; FILTRO={ tipos:{}, desde:"", hasta:"" };
+        if(VISTA.v==="historial" && Number(VISTA.p.id)===id) dibujarHistorial(el);
+        else if(VISTA.v==="informe" && Number(VISTA.p.id)===id) vistaInforme(el);
+      })
+      .catch(err=>{
+        el.innerHTML=`<div class="empty"><strong>No pudimos abrir el historial.</strong>${esc(mensaje(err))}<br><br>
+          <button type="button" class="btn navy" data-a="ir" data-v="inicio">Volver al inicio</button></div>`;
+      });
+  }
+
+  function eventosFiltrados(){
+    const tipos=Object.keys(FILTRO.tipos).filter(k=>FILTRO.tipos[k]);
+    return HIST.eventos.filter(e =>
+      (!tipos.length || tipos.indexOf(e.tipo)!==-1) &&
+      (!FILTRO.desde || e.fecha_evento>=FILTRO.desde) &&
+      (!FILTRO.hasta || e.fecha_evento<=FILTRO.hasta));
+  }
+
+  function dibujarHistorial(el){
+    const p=HIST.propiedad, todos=HIST.eventos;
+    const presentes=CFG.tipos.filter(t=>todos.some(e=>e.tipo===t.valor));
+    el.innerHTML=`
+      <div class="card">
+        <div class="propHead">
+          <div>
+            <div class="big"><span class="num">${pad4(p.id)}</span> · ${esc(p.direccion)}</div>
+            <div class="meta">
+              <span>${plural(todos.length,"evento","eventos")}</span>
+              <a href="${esc(p.carpeta_url)}" target="_blank" rel="noopener">Abrir carpeta en Drive</a>
+              ${p.id_anterior!==""?`<span>ID anterior: ${pad4(p.id_anterior)}</span>`:""}
+            </div>
+          </div>
+          <div class="headBtns">
+            <button type="button" class="btn navy" data-a="ir" data-v="cargar" data-id="${p.id}">${ICON.plus} Cargar evento</button>
+            ${ME.esAdmin?`<button type="button" class="btn ghost" data-a="ir" data-v="informe" data-id="${p.id}">Informe para propietario</button>
+            <button type="button" class="btn ghost" data-a="editarProp">Editar propiedad</button>`:""}
+            ${ME.puedeBorrar?`<button type="button" class="btn danger" data-a="borrarProp">Borrar propiedad</button>`:""}
+          </div>
+        </div>
+      </div>
+      ${todos.length?`
+      <div class="filters">
+        <div class="chips">${presentes.map(t=>`<button type="button" class="chip ${FILTRO.tipos[t.valor]?"on":""}" data-a="filtroTipo" data-t="${esc(t.valor)}">${esc(t.etiqueta)}</button>`).join("")}</div>
+        <div class="dates">
+          <span>Desde</span><input type="date" id="fDesde" value="${esc(FILTRO.desde)}">
+          <span>hasta</span><input type="date" id="fHasta" value="${esc(FILTRO.hasta)}">
+        </div>
+      </div>
+      <div class="events" id="events"></div>`
+      : `<div class="empty" style="margin-top:14px"><strong>Esta propiedad todavía no tiene eventos.</strong>Tocá "Cargar evento" para subir fotos o videos.</div>`}`;
+    if(todos.length){
+      $("#fDesde").addEventListener("change",e=>{ FILTRO.desde=e.target.value; dibujarEventos(); });
+      $("#fHasta").addEventListener("change",e=>{ FILTRO.hasta=e.target.value; dibujarEventos(); });
+      dibujarEventos();
+    }
+  }
+
+  function dibujarEventos(){
+    const box=$("#events"); if(!box) return;
+    const lista=eventosFiltrados();
+    box.innerHTML = lista.length ? lista.map(eventoHtml).join("")
+      : `<div class="empty"><strong>Ningún evento coincide con los filtros.</strong><button type="button" class="btn ghost small" data-a="limpiarFiltros" style="margin-top:8px">Quitar filtros</button></div>`;
+    revisarMiniaturas();
+  }
+
+  function lineaReclamo(e){
+    if(e.tipo!=="REPARACION" || !e.reclamo_vinculado) return "";
+    const r=eventoHist(e.reclamo_vinculado);
+    return r ? `<div class="evLink">Responde al reclamo del ${fechaAr(r.fecha_evento)}: ${esc(r.descripcion)}</div>` : "";
+  }
+
+  function eventoHtml(e){
+    const abierto=!!ABIERTOS[e.id_evento];
+    const archivos=e.archivos||[];
+    const primeras=archivos.slice(0,4);
+    return `
+    <article class="ev ${abierto?"open":""}" data-ev="${esc(e.id_evento)}">
+      <button type="button" class="evHead" data-a="abrirEvento" data-ev="${esc(e.id_evento)}" aria-expanded="${abierto}">
+        <div class="evTop">
+          <span class="date">${fechaAr(e.fecha_evento)}</span>
+          <span class="pill t-${esc(e.tipo)}">${esc(etiqueta(e.tipo))}</span>
+          <span class="desc">${esc(e.descripcion)}</span>
+          <span class="chev">${ICON.chev}</span>
+        </div>
+        <div class="evMeta">
+          <span>Origen: ${esc(e.origen)}</span>
+          <span>Cargó ${esc(usuario(e.cargado_por))}</span>
+          <span>${plural(archivos.length,"archivo","archivos")}</span>
+          ${e.visible_propietario?"":`<span class="novis">${ICON.eyeoff} No visible para el propietario</span>`}
+        </div>
+        ${lineaReclamo(e)}
+      </button>
+      ${primeras.length?`<div class="strip">${primeras.map(a=>thumbHtml(a,e.id_evento)).join("")}${archivos.length>4?`<span class="more">+${archivos.length-4}</span>`:""}</div>`:""}
+      <div class="evBody">${abierto?detalleHtml(e):""}</div>
+    </article>`;
+  }
+
+  function detalleHtml(e){
+    const archivos=e.archivos||[];
+    return `
+      ${e.sin_carpeta?`<div class="warn">No encontramos la carpeta de este evento en Drive. Avisale a mantenimiento.</div>`:""}
+      ${e.notas?`<p class="notes">${esc(e.notas)}</p>`:""}
+      <dl class="facts">
+        <div><dt>Fecha del evento</dt><dd>${fechaAr(e.fecha_evento)}</dd></div>
+        <div><dt>Tipo</dt><dd>${esc(etiqueta(e.tipo))}</dd></div>
+        <div><dt>Origen</dt><dd>${esc(e.origen)}</dd></div>
+        <div><dt>Visible para el propietario</dt><dd>${e.visible_propietario?"Sí":"No"}</dd></div>
+        <div><dt>Cargado por</dt><dd>${esc(e.cargado_por)}</dd></div>
+        <div><dt>Fecha de carga</dt><dd>${fechaHora(e.fecha_carga)}</dd></div>
+        ${e.modificado_por?`<div><dt>Última modificación</dt><dd>${fechaHora(e.fecha_modificacion)} · ${esc(usuario(e.modificado_por))}</dd></div>`:""}
+        <div><dt>Evento</dt><dd>${esc(e.id_evento)}</dd></div>
+      </dl>
+      ${archivos.length?`<div class="grid">${archivos.map(a=>thumbHtml(a,e.id_evento)).join("")}</div>`
+        :`<div class="hint">Este evento no tiene archivos.</div>`}
+      <div class="evActions">
+        <a class="btn ghost small" href="${esc(e.carpeta_url)}" target="_blank" rel="noopener">${ICON.drive} Abrir carpeta en Drive</a>
+        ${ME.esAdmin?`<button type="button" class="btn ghost small" data-a="editarEvento" data-ev="${esc(e.id_evento)}">Editar</button>`:""}
+        ${ME.puedeBorrar?`<button type="button" class="btn danger small" data-a="borrarEvento" data-ev="${esc(e.id_evento)}">Borrar evento</button>`:""}
+      </div>`;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Informe para propietario (solo admins)                           */
+  /* ---------------------------------------------------------------- */
+  function vistaInforme(el){
+    const id=Number(VISTA.p.id);
+    if(!ME.esAdmin){ ir("inicio"); return; }
+    if(!HIST || HIST.propiedad.id!==id){ vistaHistorial(el); return; }
+    if(INFORME._id!==id) INFORME={ _id:id };
+    const p=HIST.propiedad;
+    const orden=HIST.eventos.slice().sort((a,b)=>a.fecha_evento<b.fecha_evento?-1:a.fecha_evento>b.fecha_evento?1:0);
+    el.innerHTML=`
+      <div class="card">
+        <div class="propHead">
+          <div>
+            <div class="big">Informe para el propietario</div>
+            <div class="meta"><span><b>${pad4(p.id)}</b> · ${esc(p.direccion)}</span></div>
+          </div>
+          <div class="headBtns"><button type="button" class="btn ghost" data-a="historial" data-id="${p.id}">Volver al historial</button></div>
+        </div>
+        <div class="hint" style="margin-top:10px">Tildá los eventos que querés incluir. Se genera un Word con las fotos, listo para enviar. Los videos se nombran pero no se incluyen.</div>
+      </div>
+      <div class="filters">
+        <button type="button" class="btn ghost small" data-a="informeTodos">Marcar todos</button>
+        <button type="button" class="btn ghost small" data-a="informeNinguno">Desmarcar todos</button>
+      </div>
+      <div id="picks">
+        ${orden.length?orden.map(e=>{
+          const fotos=(e.archivos||[]).filter(a=>esImagen(a.mime)).length, otros=(e.archivos||[]).length-fotos;
+          const vis=e.visible_propietario;
+          return `<label class="pick ${vis?"":"off"}">
+            <input type="checkbox" data-pick="${esc(e.id_evento)}" ${vis?"":"disabled"} ${vis&&INFORME[e.id_evento]?"checked":""}>
+            <div class="pickMain">
+              <div class="t"><span>${fechaAr(e.fecha_evento)}</span><span class="pill t-${esc(e.tipo)}">${esc(etiqueta(e.tipo))}</span><span>${esc(e.descripcion)}</span></div>
+              <div class="s">${plural(fotos,"foto","fotos")}${otros?" · "+plural(otros,"video u otro archivo","videos u otros archivos"):""}</div>
+              ${vis?"":`<div class="novis">No visible para propietario</div>`}
+            </div>
+          </label>`; }).join("")
+        :`<div class="empty"><strong>Esta propiedad no tiene eventos.</strong></div>`}
+      </div>
+      <div class="stickyFoot">
+        <div id="informeResumen" style="font-weight:750"></div>
+        <button type="button" class="btn navy big" data-a="generarInforme" id="btnInforme">Generar informe</button>
+      </div>
+      <div id="informeListo"></div>`;
+    $$("input[data-pick]").forEach(c=>c.addEventListener("change",()=>{ INFORME[c.dataset.pick]=c.checked; resumenInforme(); }));
+    resumenInforme();
+  }
+
+  function elegidosInforme(){
+    return HIST.eventos.filter(e=>e.visible_propietario && INFORME[e.id_evento]);
+  }
+  function resumenInforme(){
+    const el=elegidosInforme();
+    const fotos=el.reduce((n,e)=>n+(e.archivos||[]).filter(a=>esImagen(a.mime)).length,0);
+    $("#informeResumen").textContent = el.length ? plural(el.length,"evento elegido","eventos elegidos")+" · "+plural(fotos,"foto","fotos") : "Todavía no elegiste ningún evento";
+    $("#btnInforme").disabled=!el.length;
+    return fotos;
+  }
+  function generarInforme(confirmado){
+    const ids=elegidosInforme().map(e=>e.id_evento);
+    if(!ids.length) return;
+    const fotos=resumenInforme();
+    // LÍMITE PRÁCTICO: con muchas fotos el Word queda pesado. Se avisa y se pregunta si continuar.
+    if(fotos>CFG.avisoFotos && !confirmado){
+      askConfirm({ titulo:"El informe va a ser pesado",
+        msg:"Elegiste "+fotos+" fotos. El documento va a quedar pesado y puede tardar varios minutos en generarse. ¿Querés continuar igual?",
+        si:"Continuar", onSi:()=>generarInforme(true) });
+      return;
+    }
+    busy(true, "Generando el informe\u2026", "Puede tardar uno o dos minutos según la cantidad de fotos. No cierres esta pantalla.");
+    server("generarInforme", HIST.propiedad.id, ids, !!confirmado)
+      .then(res=>{
+        busy(false);
+        if(res.aviso){ return askConfirm({ titulo:"El informe va a ser pesado",
+          msg:"Son "+res.fotos+" fotos. ¿Querés continuar igual?", si:"Continuar", onSi:()=>generarInforme(true) }); }
+        $("#informeListo").innerHTML=`
+          <div class="card" style="text-align:center;margin-top:6px">
+            <div class="okBig">${ICON.check}</div>
+            <div style="font-size:18px;font-weight:900">Informe listo</div>
+            <div class="muted" style="margin-top:6px;word-break:break-all">${esc(res.nombre)}</div>
+            ${res.mensaje?`<div class="warn" style="margin-top:12px;text-align:left">${esc(res.mensaje)}</div>`:""}
+            <div class="resBtns">
+              <a class="btn navy" href="${esc(res.url)}" target="_blank" rel="noopener">Abrir</a>
+              ${res.descarga?`<a class="btn ghost" href="${esc(res.descarga)}" target="_blank" rel="noopener">Descargar</a>`:""}
+            </div>
+            <div class="hint">Quedó guardado en la carpeta _Informes de la propiedad.</div>
+          </div>`;
+        $("#informeListo").scrollIntoView({ behavior:"smooth", block:"center" });
+      })
+      .catch(err=>{ busy(false); fallo(err); });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Control                                                          */
+  /* ---------------------------------------------------------------- */
+  function vistaControl(el){
+    el.innerHTML=`<div class="loader">Revisando qué falta documentar\u2026</div>`;
+    server("getControl").then(c=>{
+      if(VISTA.v!=="control") return;
+      const fila=(id, dir, extra)=>`<button type="button" class="rowlink" data-a="historial" data-id="${id}">
+        <span class="pill id">${pad4(id)}</span><span class="dir">${esc(dir)}</span><span class="extra">${extra}</span></button>`;
+      const bloque=(n, titulo, sub, filas, abierto)=>`
+        <details class="card ctl" ${abierto&&n?"open":""}>
+          <summary><span class="n ${n?"":"zero"}">${n}</span><span>${titulo}<small>${sub}</small></span></summary>
+          <div class="rows">${n?filas:`<div class="hint" style="padding:0 6px 6px">Nada pendiente acá.</div>`}</div>
+        </details>`;
+      el.innerHTML=`
+        <h2 class="sec" style="margin-top:4px">Control: qué falta documentar</h2>
+        ${bloque(c.reclamosSinReparacion.length, "Reclamos sin reparación cargada", "Reclamos que no tienen ninguna reparación vinculada.",
+          c.reclamosSinReparacion.map(r=>fila(r.id, r.direccion+" · "+r.descripcion, fechaAr(r.fecha)+" · hace "+plural(r.dias,"día","días"))).join(""), true)}
+        ${bloque(c.sinIngreso.length, "Propiedades sin ingreso", "Propiedades activas que no tienen ningún evento de tipo Ingreso.",
+          c.sinIngreso.map(p=>fila(p.id, p.direccion, "Sin ingreso")).join(""), true)}
+        ${bloque(c.sinMovimiento.length, "Propiedades sin eventos en 12 meses", "Sin ningún evento con fecha en los últimos 12 meses.",
+          c.sinMovimiento.map(p=>fila(p.id, p.direccion, p.ultimo?"Último: "+fechaAr(p.ultimo):"Sin eventos")).join(""), true)}`;
+    }).catch(err=>{ el.innerHTML=`<div class="empty"><strong>No pudimos armar el control.</strong>${esc(mensaje(err))}</div>`; });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Papelera (solo quienes pueden borrar)                            */
+  /* ---------------------------------------------------------------- */
+  function vistaPapelera(el){
+    if(!ME.puedeBorrar){ ir("inicio"); return; }
+    el.innerHTML=`<div class="loader">Abriendo la papelera\u2026</div>`;
+    server("getPapelera").then(lista=>{
+      if(VISTA.v!=="papelera") return;
+      el.innerHTML=`
+        <h2 class="sec" style="margin-top:4px">Papelera de propiedades</h2>
+        ${lista.length?lista.map(p=>`
+          <div class="card" style="margin-bottom:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <span class="pill id">${pad4(p.id)}</span>
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:800">${esc(p.direccion)}</div>
+              <div class="hint">Borrada el ${fechaHora(p.fecha_borrado)} por ${esc(usuario(p.borrado_por))} · ${plural(p.eventos,"evento","eventos")}</div>
+              ${p.ocupado?`<div class="hint" style="color:#a72e39;font-weight:700">El ID ${pad4(p.id)} ahora lo usa otra propiedad. Para restaurar, primero hay que cambiarle el número a esa.</div>`:""}
+            </div>
+            <button type="button" class="btn navy" data-a="restaurar" data-clave="${esc(p.clave)}" data-id="${p.id}" ${p.ocupado?"disabled":""}>Restaurar</button>
+          </div>`).join("")
+        :`<div class="empty"><strong>La papelera está vacía.</strong>Acá aparecen las propiedades borradas, para poder recuperarlas.</div>`}`;
+    }).catch(err=>{ el.innerHTML=`<div class="empty"><strong>No pudimos abrir la papelera.</strong>${esc(mensaje(err))}</div>`; });
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Acciones (un solo manejador de clics para toda la app)           */
+  /* ---------------------------------------------------------------- */
+  document.addEventListener("click", e=>{
+    const el=e.target.closest("[data-a]"); if(!el) return;
+    const a=el.dataset.a, d=el.dataset;
+
+    if(a==="ir"){ const p={}; if(d.id) p.id=Number(d.id); return ir(d.v, p); }
+    if(a==="historial"){ if(d.ev) ABIERTOS[d.ev]=true; return ir("historial", { id:Number(d.id) }); }
+
+    if(a==="elegir") return $("#fFiles").click();
+    if(a==="camara") return $("#fCam").click();
+    if(a==="quitarNuevo"){
+      const x=FORM.archivos.splice(Number(d.i),1)[0];
+      if(x && x.url){ try{ URL.revokeObjectURL(x.url); }catch(err){} }
+      return dibujarPreviews();
+    }
+    if(a==="cancelarForm"){
+      if(FORM && FORM.modo==="editar") return ir("historial", { id:FORM.ev.id_propiedad });
+      return ir(HIST && VISTA.p.id ? "historial" : "inicio", VISTA.p.id ? { id:VISTA.p.id } : {});
+    }
+    if(a==="reintentar") return subirTodos();
+    if(a==="quitarExistente"){
+      const arch=(FORM.ev.archivos||[]).find(x=>x.id===d.fid); if(!arch) return;
+      return askConfirm({ titulo:"Quitar archivo", peligro:true, si:"Quitar",
+        msg:"¿Quitar \""+arch.nombre+"\" de este evento? Va a la papelera de Drive.",
+        onSi:()=>{
+          busy(true,"Quitando el archivo\u2026");
+          server("quitarArchivo", FORM.ev.id_evento, arch.id)
+            .then(res=>{ busy(false); FORM.ev.archivos=res.archivos; FORM.ev.cantidad_archivos=res.archivos.length; dibujarExistentes(); toast("Archivo quitado."); })
+            .catch(err=>{ busy(false); fallo(err); });
+        } });
+    }
+
+    if(a==="abrirEvento"){
+      const art=el.closest(".ev"), id=d.ev;
+      ABIERTOS[id]=!ABIERTOS[id];
+      art.classList.toggle("open", !!ABIERTOS[id]);
+      el.setAttribute("aria-expanded", String(!!ABIERTOS[id]));
+      const body=$(".evBody",art);
+      if(ABIERTOS[id] && !body.innerHTML.trim()){ body.innerHTML=detalleHtml(eventoHist(id)); revisarMiniaturas(); }
+      return;
+    }
+    if(a==="filtroTipo"){ FILTRO.tipos[d.t]=!FILTRO.tipos[d.t]; el.classList.toggle("on", !!FILTRO.tipos[d.t]); return dibujarEventos(); }
+    if(a==="limpiarFiltros"){ FILTRO={ tipos:{}, desde:"", hasta:"" }; return dibujarHistorial($("#vista")); }
+    if(a==="editarEvento") return ir("cargar", { editar:d.ev, id:HIST.propiedad.id });
+    if(a==="borrarEvento"){
+      const ev=eventoHist(d.ev); if(!ev) return;
+      // Confirmación con el nombre del evento antes de borrar (el borrado de eventos es definitivo).
+      return askConfirm({ titulo:"Borrar evento", peligro:true, si:"Borrar evento",
+        msg:"¿Borrar \""+fechaAr(ev.fecha_evento)+" · "+etiqueta(ev.tipo)+" · "+ev.descripcion+"\" con "+plural((ev.archivos||[]).length,"archivo","archivos")+"? No se puede deshacer desde la app: la carpeta va a la papelera de Drive, que se vacía sola a los 30 días.",
+        onSi:()=>{
+          busy(true,"Borrando el evento\u2026");
+          server("borrarEvento", ev.id_evento)
+            .then(()=>{ busy(false); toast("Evento borrado."); volverAlHistorial(HIST.propiedad.id); })
+            .catch(err=>{ busy(false); fallo(err); });
+        } });
+    }
+
+    if(a==="editarProp"){
+      $("#pDir").value=HIST.propiedad.direccion; $("#pNuevoId").value="";
+      return $("#propOv").classList.add("show");
+    }
+    if(a==="cerrarProp") return $("#propOv").classList.remove("show");
+    if(a==="guardarDireccion"){
+      const dir=$("#pDir").value.trim();
+      if(!dir) return toast("Escribí la dirección.", true);
+      busy(true,"Guardando la dirección\u2026");
+      return server("modificarPropiedad", HIST.propiedad.id, dir)
+        .then(()=>{ busy(false); $("#propOv").classList.remove("show"); toast("Dirección guardada."); volverAlHistorial(HIST.propiedad.id); })
+        .catch(err=>{ busy(false); fallo(err); });
+    }
+    if(a==="renumerar"){
+      const raw=$("#pNuevoId").value.trim(), viejo=HIST.propiedad.id;
+      if(!/^\d{1,4}$/.test(raw) || Number(raw)<1) return toast("Escribí el número nuevo (entre 1 y "+CFG.idMax+").", true);
+      const nuevo=Number(raw);
+      if(nuevo===viejo) return toast("Es el mismo número que ya tiene.", true);
+      return askConfirm({ titulo:"Cambiar número de propiedad", si:"Cambiar número",
+        msg:"La propiedad "+pad4(viejo)+" pasa a ser la "+pad4(nuevo)+". Se renombran la carpeta en Drive y todos los archivos.",
+        onSi:()=>{
+          busy(true,"Cambiando el número\u2026","Se están renombrando la carpeta y los archivos. Puede tardar un rato.");
+          server("renumerarPropiedad", viejo, nuevo)
+            .then(res=>{ busy(false); $("#propOv").classList.remove("show"); toast("Listo: ahora es la "+pad4(res.id)+"."); volverAlHistorial(res.id); })
+            .catch(err=>{ busy(false); fallo(err); });
+        } });
+    }
+    if(a==="borrarProp"){
+      const p=HIST.propiedad;
+      return askConfirm({ titulo:"Borrar propiedad", peligro:true, si:"Mandar a la papelera",
+        msg:"¿Borrar la propiedad "+pad4(p.id)+" · "+p.direccion+" con "+plural(HIST.eventos.length,"evento","eventos")+"? Va a la papelera y se puede restaurar.",
+        onSi:()=>{
+          busy(true,"Mandando a la papelera\u2026");
+          server("borrarPropiedad", p.id)
+            .then(()=>{ busy(false); HIST=null; toast("Propiedad en la papelera."); return refrescarInicio(); })
+            .then(()=>ir("inicio"))
+            .catch(err=>{ busy(false); fallo(err); });
+        } });
+    }
+    if(a==="restaurar"){
+      busy(true,"Restaurando\u2026");
+      return server("restaurarPropiedad", d.clave)
+        .then(res=>{ busy(false); toast("Propiedad restaurada."); return refrescarInicio().then(()=>ir("historial",{ id:res.id })); })
+        .catch(err=>{ busy(false); fallo(err); });
+    }
+
+    if(a==="informeTodos" || a==="informeNinguno"){
+      HIST.eventos.forEach(ev=>{ INFORME[ev.id_evento] = a==="informeTodos" && ev.visible_propietario; });
+      $$("input[data-pick]").forEach(c=>{ if(!c.disabled) c.checked = a==="informeTodos"; });
+      return resumenInforme();
+    }
+    if(a==="generarInforme") return generarInforme(false);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Arranque                                                         */
+  /* ---------------------------------------------------------------- */
+  // El logo se sirve desde la página de acceso (GitHub Pages). Recién se muestra cuando cargó;
+  // si esa página todavía no está publicada, la barra queda solo con el nombre de la app.
+  (function(){
+    const img=$("#logoJB");
+    const mostrar=()=>{ if(img.naturalWidth>0){ img.hidden=false; $("#logoSep").hidden=false; } };
+    img.addEventListener("load", mostrar);
+    if(img.complete) mostrar();
+  })();
+
+  function boot(){
+    server("getInicio")
+      .then(res => {
+        aplicarInicio(res);
+        $("#userEmail").textContent = ME.email;
+        $("#userRole").textContent = ME.puedeBorrar ? "Administrador · puede borrar" : ME.esAdmin ? "Administrador" : "Carga y consulta";
+        $("#userChip").hidden = false;
+        $("#nav").hidden = false;
+        $("#navPapelera").hidden = !ME.puedeBorrar;
+        ir("inicio", {}, { sinHistorial:true });
+      })
+      .catch(err => {
+        $("#vista").innerHTML =
+          `<div class="empty"><strong>No pudimos abrir la app.</strong>${esc(mensaje(err))}<br><br>
+           Asegurate de haber entrado con tu cuenta de <b>juarezbeltran.com.ar</b>.</div>`;
+      });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
