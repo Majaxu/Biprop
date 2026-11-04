@@ -266,8 +266,6 @@
   .pick{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}
   .pick + .pick{margin-top:8px}
   .pick input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--ok);flex:0 0 auto}
-  .pick.off{background:#f7f9fc;cursor:not-allowed}
-  .pick.off .pickMain{opacity:.55}
   .pickMain{min-width:0;flex:1}
   .pickMain .t{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:750}
   .pickMain .s{font-size:12px;color:var(--muted);margin-top:4px}
@@ -805,7 +803,7 @@
 
         <div class="field">
           <label class="checkline"><input type="checkbox" id="fVisible" ${!ev||ev.visible_propietario?"checked":""}> Visible para el propietario</label>
-          <div class="hint">Si lo destildás, este evento y sus notas no se ofrecen en el informe para el propietario.</div>
+          <div class="hint">Queda registrado para cuando el propietario pueda entrar a ver el historial. En el informe se puede incluir igual.</div>
         </div>
 
         <div class="field" id="reclamoWrap" hidden>
@@ -1235,7 +1233,7 @@
           </div>
           <div class="headBtns"><button type="button" class="btn ghost" data-a="historial" data-id="${p.id}">Volver al historial</button></div>
         </div>
-        <div class="hint" style="margin-top:10px">Tildá los eventos que querés incluir. Se genera un Word con las fotos, listo para enviar. Los videos se nombran pero no se incluyen.</div>
+        <div class="hint" style="margin-top:10px">Tildá los eventos que querés incluir. Cada evento va completo, con sus notas y sus fotos; revisá el Word antes de enviarlo. Los videos se nombran pero no se incluyen.</div>
       </div>
       <div class="filters">
         <button type="button" class="btn ghost small" data-a="informeTodos">Marcar todos</button>
@@ -1245,12 +1243,12 @@
         ${orden.length?orden.map(e=>{
           const fotos=(e.archivos||[]).filter(a=>esImagen(a.mime)).length, otros=(e.archivos||[]).length-fotos;
           const vis=e.visible_propietario;
-          return `<label class="pick ${vis?"":"off"}">
-            <input type="checkbox" data-pick="${esc(e.id_evento)}" ${vis?"":"disabled"} ${vis&&INFORME[e.id_evento]?"checked":""}>
+          return `<label class="pick">
+            <input type="checkbox" data-pick="${esc(e.id_evento)}" ${INFORME[e.id_evento]?"checked":""}>
             <div class="pickMain">
               <div class="t"><span>${fechaAr(e.fecha_evento)}</span><span class="pill t-${esc(e.tipo)}">${esc(etiqueta(e.tipo))}</span><span>${esc(e.descripcion)}</span></div>
               <div class="s">${plural(fotos,"foto","fotos")}${otros?" · "+plural(otros,"video u otro archivo","videos u otros archivos"):""}</div>
-              ${vis?"":`<div class="novis">No visible para propietario</div>`}
+              ${vis?"":`<div class="novis">Marcado como no visible para el propietario. Si lo tildás, va completo, con sus notas.</div>`}
             </div>
           </label>`; }).join("")
         :`<div class="empty"><strong>Esta propiedad no tiene eventos.</strong></div>`}
@@ -1265,7 +1263,7 @@
   }
 
   function elegidosInforme(){
-    return HIST.eventos.filter(e=>e.visible_propietario && INFORME[e.id_evento]);
+    return HIST.eventos.filter(e=>INFORME[e.id_evento]);
   }
   function resumenInforme(){
     const el=elegidosInforme();
@@ -1465,8 +1463,8 @@
     }
 
     if(a==="informeTodos" || a==="informeNinguno"){
-      HIST.eventos.forEach(ev=>{ INFORME[ev.id_evento] = a==="informeTodos" && ev.visible_propietario; });
-      $$("input[data-pick]").forEach(c=>{ if(!c.disabled) c.checked = a==="informeTodos"; });
+      HIST.eventos.forEach(ev=>{ INFORME[ev.id_evento] = a==="informeTodos"; });
+      $$("input[data-pick]").forEach(c=>{ c.checked = a==="informeTodos"; });
       return resumenInforme();
     }
     if(a==="generarInforme") return generarInforme(false);

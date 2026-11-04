@@ -91,7 +91,14 @@ const INICIO_VISIBLES = 30;   // cuántos se muestran en el Inicio cuando no hay
 
 /** Informe para el propietario. */
 const INFORME_AVISO_FOTOS = 150;   // desde cuántas fotos se avisa que va a ser pesado
-const INFORME_ANCHO_PX    = 1000;  // ancho de las fotos dentro del Word (los originales no se tocan)
+const INFORME_ANCHO_PX    = 800;   // resolución de las fotos dentro del Word (los originales no se tocan)
+const INFORME_FOTOS_POR_FILA = 3;  // columnas de la grilla de fotos
+const INFORME_FOTO_ALTO_CM   = 5;  // alto máximo de cada foto; las verticales se achican hasta entrar
+const INFORME_FUENTE = 'Arial';
+const INFORME_AZUL   = '#10295a';  // títulos de evento
+const INFORME_TINTA  = '#142033';  // texto
+const INFORME_GRIS   = '#6d7888';  // datos secundarios
+const INFORME_FONDO  = '#f4f7fb';  // recuadro de las notas
 const INFORME_TOPE_SEGUNDOS = 270; // si armar el informe pasa de este tiempo, se frena y se avisa
 
 /** Respaldo diario de la planilla. */
@@ -1241,7 +1248,10 @@ function getControl() {
  * Copia la plantilla, reemplaza los marcadores, inserta los eventos elegidos y
  * exporta la copia a .docx en Historial/<id>/_Informes/.
  *
- * Nunca incluye eventos marcados como no visibles para el propietario.
+ * En el informe va TODO lo que el administrador elija, incluidos los eventos
+ * marcados como "no visibles para el propietario" y sus notas. Esa marca queda
+ * reservada para cuando el propietario pueda entrar a ver el historial; acá no
+ * filtra nada. Quien arma el informe revisa el Word antes de enviarlo.
  * Las fotos van en versión reducida (INFORME_ANCHO_PX): Google Docs no acepta
  * fotos muy grandes y el Word quedaría inmanejable. Los originales no se tocan.
  */
@@ -1259,9 +1269,6 @@ function generarInforme(idPropiedad, idsEventos, confirmado) {
     .sort((a, b) => a.fecha_evento !== b.fecha_evento ? (a.fecha_evento < b.fecha_evento ? -1 : 1)
       : (a.id_evento < b.id_evento ? -1 : 1));
   if (!eventos.length) throw new Error('Elegí al menos un evento para el informe.');
-  if (eventos.some(e => !e.visible_propietario)) {
-    throw new Error('Elegiste un evento que no es visible para el propietario. Sacale el tilde y probá de nuevo.');
-  }
 
   // Archivos reales de cada evento.
   let totalFotos = 0;
@@ -1326,8 +1333,15 @@ function generarInforme(idPropiedad, idsEventos, confirmado) {
     }
     const pos = () => body.getChildIndex(marcador);
 
+    // Las medidas de la página vienen en puntos; el tamaño de las imágenes se fija en píxeles
+    // (1 punto = 1,333 píxeles). Cada foto se achica hasta entrar en una caja: el ancho de su
+    // columna y el alto máximo INFORME_FOTO_ALTO_CM. Así las verticales no desarman las filas.
+    const PX_POR_PUNTO = 96 / 72;
+    const N = INFORME_FOTOS_POR_FILA;
     const anchoUtil = body.getPageWidth() - body.getMarginLeft() - body.getMarginRight();
-    const anchoFoto = Math.floor(anchoUtil / 2) - 16;
+    const anchoColumna = anchoUtil / N;
+    const maxAnchoPx = (anchoColumna - 12) * PX_POR_PUNTO;
+    const maxAltoPx = INFORME_FOTO_ALTO_CM * 28.3465 * PX_POR_PUNTO;
     const todosPorId = {};
     todos.forEach(e => { todosPorId[e.id_evento] = e; });
 
@@ -1336,64 +1350,79 @@ function generarInforme(idPropiedad, idsEventos, confirmado) {
       if (Date.now() - inicio > INFORME_TOPE_SEGUNDOS * 1000) {
         throw new Error('son demasiadas fotos para un solo documento. Elegí menos eventos y generá dos informes.');
       }
-      // Título: fecha + etiqueta del tipo + descripción.
-      body.insertParagraph(pos(), fechaAr_(e.fecha_evento) + ' · ' + etiquetaTipo_(e.tipo) + ' · ' + e.descripcion)
-        .setHeading(DocumentApp.ParagraphHeading.HEADING2);
 
-      const pOrigen = normal_(body.insertParagraph(pos(), ''));
-      pOrigen.appendText('Origen: ').setBold(true);
-      pOrigen.appendText(e.origen).setBold(false);
+      // Título del evento: fecha + etiqueta del tipo + descripción.
+      estiloInforme_(body.insertParagraph(pos(), fechaAr_(e.fecha_evento) + ' · ' + etiquetaTipo_(e.tipo) + ' · ' + e.descripcion),
+        { titulo: true, tam: 13, color: INFORME_AZUL, negrita: true, antes: 18, despues: 3 });
 
-      // Si el reclamo vinculado NO es visible para el propietario, no se nombra.
+      estiloInforme_(body.insertParagraph(pos(), 'Origen: ' + e.origen), { tam: 9, color: INFORME_GRIS, antes: 0, despues: 6 });
+
       const r = e.tipo === 'REPARACION' && e.reclamo_vinculado ? todosPorId[e.reclamo_vinculado] : null;
-      if (r && r.visible_propietario) {
-        const pRec = normal_(body.insertParagraph(pos(), 'Responde al reclamo del ' + fechaAr_(r.fecha_evento) + ': ' + r.descripcion));
-        pRec.editAsText().setItalic(true);
+      if (r) {
+        estiloInforme_(body.insertParagraph(pos(), 'Responde al reclamo del ' + fechaAr_(r.fecha_evento) + ': ' + r.descripcion),
+          { tam: 9, color: INFORME_TINTA, cursiva: true, antes: 0, despues: 6 });
       }
 
-      // Notas: solo de eventos visibles (los no visibles ya se rechazaron arriba).
-      if (e.notas) {
-        e.notas.split('\n').forEach(linea => {
-          if (linea.trim()) normal_(body.insertParagraph(pos(), linea.trim()));
+      // Notas del evento, en un recuadro gris (van siempre, sea visible o no para el propietario).
+      const lineas = String(e.notas || '').split('\n').map(l => l.trim()).filter(l => l);
+      if (lineas.length) {
+        const caja = body.insertTable(pos());
+        caja.setBorderWidth(0);
+        const celdaNotas = caja.appendTableRow().appendTableCell('');
+        celdaNotas.setBackgroundColor(INFORME_FONDO);
+        celdaNotas.setPaddingTop(7).setPaddingBottom(7).setPaddingLeft(10).setPaddingRight(10);
+        lineas.forEach((linea, i) => {
+          const p = (i === 0 && celdaNotas.getNumChildren()) ? celdaNotas.getChild(0).asParagraph() : celdaNotas.appendParagraph('');
+          p.setText(linea);
+          estiloInforme_(p, { tam: 10, color: INFORME_TINTA, antes: 0, despues: i === lineas.length - 1 ? 0 : 4 });
         });
+        // Renglón de separación (dos tablas pegadas se unirían en una sola).
+        estiloInforme_(body.insertParagraph(pos(), ''), { antes: 0, despues: 0 });
       }
 
-      // Fotos en grilla de 2 columnas, ancho uniforme, con pie "Foto N de M".
+      // Fotos en grilla de INFORME_FOTOS_POR_FILA columnas, sin bordes y sin pie.
       if (e._fotos.length) {
         const blobs = miniaturas_(e._fotos.map(a => a.id), INFORME_ANCHO_PX);
         const tabla = body.insertTable(pos());
         tabla.setBorderWidth(0);
         let fila = null;
         e._fotos.forEach((foto, i) => {
-          if (i % 2 === 0) fila = tabla.appendTableRow();
+          if (i % N === 0) fila = tabla.appendTableRow();
           const celda = fila.appendTableCell('');
-          celda.setPaddingTop(4).setPaddingBottom(6).setPaddingLeft(4).setPaddingRight(4);
+          celda.setPaddingTop(4).setPaddingBottom(4).setPaddingLeft(3).setPaddingRight(3);
+          try { celda.setVerticalAlignment(DocumentApp.VerticalAlignment.CENTER); } catch (err) {}
           const par = celda.getNumChildren() ? celda.getChild(0).asParagraph() : celda.appendParagraph('');
           par.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+          par.setSpacingBefore(0).setSpacingAfter(0);
           let puesta = false;
           if (blobs[i]) {
             try {
               const img = par.appendInlineImage(blobs[i]);
               const w = img.getWidth(), h = img.getHeight();
-              if (w > 0) { img.setWidth(anchoFoto); img.setHeight(Math.round(h * anchoFoto / w)); }
+              if (w > 0 && h > 0) {
+                const esc = Math.min(maxAnchoPx / w, maxAltoPx / h);
+                img.setWidth(Math.round(w * esc)).setHeight(Math.round(h * esc));
+              }
               puesta = true;
             } catch (err) { puesta = false; }
           }
-          if (!puesta) par.appendText('(No se pudo incluir esta foto: ' + foto.nombre + ')');
-          const pie = celda.appendParagraph('Foto ' + (i + 1) + ' de ' + e._fotos.length);
-          pie.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-          pie.editAsText().setFontSize(8).setForegroundColor('#6d7888').setBold(false).setItalic(false);
+          if (!puesta) {
+            par.appendText('(No se pudo incluir esta foto: ' + foto.nombre + ')')
+              .setFontFamily(INFORME_FUENTE).setFontSize(8).setForegroundColor(INFORME_GRIS);
+          }
         });
-        if (e._fotos.length % 2 === 1) fila.appendTableCell('');   // completa la última fila
-        try { tabla.setColumnWidth(0, anchoUtil / 2); tabla.setColumnWidth(1, anchoUtil / 2); } catch (err) {}
+        // Completa la última fila con celdas vacías y deja todas las columnas del mismo ancho.
+        for (let k = e._fotos.length % N; k > 0 && k < N; k++) fila.appendTableCell('');
+        try { for (let c = 0; c < N; c++) tabla.setColumnWidth(c, anchoColumna); } catch (err) {}
       }
 
       // Videos y otros archivos: solo el nombre, sin link (el documento sale de JB).
       e._archivos.filter(a => !esImagen_(a.mime)).forEach(a => {
-        normal_(body.insertParagraph(pos(), (esVideo_(a.mime) ? 'Video: ' : 'Archivo: ') + a.nombre));
+        estiloInforme_(body.insertParagraph(pos(), (esVideo_(a.mime) ? 'Video: ' : 'Archivo: ') + a.nombre),
+          { tam: 9, color: INFORME_GRIS, antes: 4, despues: 0 });
       });
 
-      normal_(body.insertParagraph(pos(), ''));
+      estiloInforme_(body.insertParagraph(pos(), ''), { antes: 0, despues: 0 });
     });
 
     // Se saca el renglón del marcador (si es el último del documento, solo se vacía).
@@ -1430,10 +1459,19 @@ function generarInforme(idPropiedad, idsEventos, confirmado) {
   };
 }
 
-/** Deja un párrafo recién insertado con estilo "Texto normal", sin negrita ni cursiva heredadas. */
-function normal_(par) {
-  par.setHeading(DocumentApp.ParagraphHeading.NORMAL);
-  if (par.getText()) par.editAsText().setBold(false).setItalic(false);
+/**
+ * Da formato a un párrafo que la app inserta en el informe. El formato se fija
+ * acá (y no en los estilos de la plantilla) para que salga igual siempre.
+ * Los colores, la fuente y los tamaños están en las constantes INFORME_...
+ */
+function estiloInforme_(par, e) {
+  par.setHeading(e.titulo ? DocumentApp.ParagraphHeading.HEADING2 : DocumentApp.ParagraphHeading.NORMAL);
+  if (e.antes !== undefined) par.setSpacingBefore(e.antes);
+  if (e.despues !== undefined) par.setSpacingAfter(e.despues);
+  if (par.getText()) {
+    par.editAsText().setFontFamily(INFORME_FUENTE).setFontSize(e.tam || 10)
+      .setForegroundColor(e.color || INFORME_TINTA).setBold(!!e.negrita).setItalic(!!e.cursiva);
+  }
   return par;
 }
 
