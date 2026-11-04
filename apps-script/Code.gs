@@ -86,6 +86,8 @@ const DESCRIPCION_MAX = 80;   // caracteres de la descripción del evento
 const SLUG_MAX        = 40;   // caracteres de la descripción dentro del nombre de carpeta
 const NOTAS_MAX       = 5000;
 const HORAS_DE_CARGA  = 2;    // cuánto tiempo tiene quien creó un evento para terminar de subir sus archivos
+const INICIO_ULTIMOS  = 100;  // cuántos eventos recientes viajan al Inicio (ahí se filtran por tipo y por quién cargó)
+const INICIO_VISIBLES = 30;   // cuántos se muestran en el Inicio cuando no hay ningún filtro puesto
 
 /** Informe para el propietario. */
 const INFORME_AVISO_FOTOS = 150;   // desde cuántas fotos se avisa que va a ser pesado
@@ -601,7 +603,7 @@ function getInicio() {
   const ultimos = eventosActivos_()
     .sort((a, b) => a.fecha_carga !== b.fecha_carga ? (a.fecha_carga < b.fecha_carga ? 1 : -1)
       : (a.id_evento < b.id_evento ? 1 : -1))
-    .slice(0, 30)
+    .slice(0, INICIO_ULTIMOS)
     .map(limpio_);
   return {
     email: email,
@@ -610,7 +612,8 @@ function getInicio() {
     config: {
       app: APP_NOMBRE, tipos: TIPOS, origenes: ORIGENES, maxMb: MAX_ARCHIVO_MB,
       descMax: DESCRIPCION_MAX, avisoFotos: INFORME_AVISO_FOTOS,
-      idNuevasDesde: ID_NUEVAS_DESDE, idMax: ID_MAX
+      idNuevasDesde: ID_NUEVAS_DESDE, idMax: ID_MAX,
+      inicioVisibles: INICIO_VISIBLES
     },
     propiedades: propiedades.map(p => ({ id: p.id, direccion: p.direccion })),
     ultimos: ultimos,

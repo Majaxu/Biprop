@@ -212,7 +212,11 @@
   }
   .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
   .dates{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);font-weight:700;margin-left:auto;flex-wrap:wrap}
-  .dates input{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:#fff;color:var(--ink);font-size:13px}
+  .dates input,.dates select,.quien select{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:#fff;color:var(--ink);font-size:13px}
+  .quien{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);font-weight:700}
+  .quien select{padding-right:28px}
+  .filters .cuenta{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
+  .filters .btn.small{margin-left:auto}
 
   .events{display:flex;flex-direction:column;gap:12px}
   .ev{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 5px 20px rgba(16,41,90,.05);overflow:hidden}
@@ -344,6 +348,9 @@
     .facts{grid-template-columns:1fr 1fr}
     .dates{margin-left:0;width:100%}
     .dates input{flex:1;min-width:0}
+    .quien{width:100%}
+    .quien select{flex:1;min-width:0}
+    .filters .btn.small{margin-left:0}
     .headBtns{width:100%}
     .headBtns .btn{flex:1;min-height:44px}
     .strip .thumb,.strip .more{width:64px;height:64px}
@@ -424,14 +431,15 @@
   /* Estado                                                            */
   /* ---------------------------------------------------------------- */
   let ME = { email:"", esAdmin:false, puedeBorrar:false };
-  let CFG = { tipos:[], origenes:[], maxMb:30, descMax:80, avisoFotos:150, idNuevasDesde:5000, idMax:9999 };
+  let CFG = { tipos:[], origenes:[], maxMb:30, descMax:80, avisoFotos:150, idNuevasDesde:5000, idMax:9999, inicioVisibles:30 };
   let PROPS = [];        // propiedades activas {id, direccion}
   let ULTIMOS = [];      // últimos eventos cargados
   let SIGUIENTE = 5000;  // siguiente ID libre para propiedades nuevas
   let HOY = "";
   let VISTA = { v:"inicio", p:{} };
   let HIST = null;       // historial abierto {propiedad, eventos}
-  let FILTRO = { tipos:{}, desde:"", hasta:"" };
+  let FILTRO = { tipos:{}, desde:"", hasta:"", quien:"" };   // filtros del historial de una propiedad
+  let FINICIO = null;    // filtros del Inicio {tipos:{}, quien:""}; se arman recién con el primer render (arrancan en el usuario actual)
   let ABIERTOS = {};     // eventos desplegados en el historial
   let FORM = null;       // estado del formulario de carga
   let SUBIENDO = false;
@@ -658,16 +666,59 @@
         <button type="button" class="btn navy big" data-a="ir" data-v="cargar">${ICON.plus} Cargar evento</button>
       </section>
       <h2 class="sec">Últimos eventos cargados</h2>
+      <div id="feedFiltros"></div>
       <div class="feed" id="feed"></div>`;
     $("#q").addEventListener("input", buscar);
-    $("#feed").innerHTML = ULTIMOS.length ? ULTIMOS.map(e=>`
+    if(!ULTIMOS.length){
+      $("#feed").innerHTML=`<div class="empty"><strong>Todavía no hay eventos cargados.</strong>Tocá "Cargar evento" para subir las primeras fotos.</div>`;
+      return;
+    }
+    // Primera vez: el filtro arranca en el usuario actual (si cargó algo), sin tipos marcados.
+    if(!FINICIO){
+      const propios=ULTIMOS.some(e=>e.cargado_por===ME.email);
+      FINICIO={ tipos:{}, quien: propios ? ME.email : "" };
+    }
+    const quienes=[...new Set(ULTIMOS.map(e=>e.cargado_por))].sort((a,b)=>usuario(a).localeCompare(usuario(b)));
+    const presentes=CFG.tipos.filter(t=>ULTIMOS.some(e=>e.tipo===t.valor));
+    $("#feedFiltros").innerHTML=`
+      <div class="filters" style="margin-top:0">
+        <label class="quien"><span>Cargado por</span>
+          <select id="fiQuien">
+            <option value="">Todos</option>
+            ${quienes.map(q=>`<option value="${esc(q)}" ${FINICIO.quien===q?"selected":""}>${esc(usuario(q))}${q===ME.email?" (yo)":""}</option>`).join("")}
+          </select>
+        </label>
+        <div class="chips">${presentes.map(t=>`<button type="button" class="chip ${FINICIO.tipos[t.valor]?"on":""}" data-a="fiTipo" data-t="${esc(t.valor)}">${esc(t.etiqueta)}</button>`).join("")}</div>
+        <span class="cuenta" id="fiCuenta"></span>
+        <button type="button" class="btn ghost small" data-a="fiLimpiar" id="fiLimpiar" hidden>Quitar filtros</button>
+      </div>`;
+    $("#fiQuien").addEventListener("change", e=>{ FINICIO.quien=e.target.value; dibujarFeed(); });
+    dibujarFeed();
+  }
+
+  function dibujarFeed(){
+    const box=$("#feed"); if(!box) return;
+    const tipos=Object.keys(FINICIO.tipos).filter(k=>FINICIO.tipos[k]);
+    const hayFiltro = !!(tipos.length || FINICIO.quien);
+    let lista=ULTIMOS.filter(e =>
+      (!tipos.length || tipos.indexOf(e.tipo)!==-1) &&
+      (!FINICIO.quien || e.cargado_por===FINICIO.quien));
+    // Sin filtros se muestran solo los más recientes; con filtros, todo lo que coincida dentro de lo que viajó.
+    const total=lista.length;
+    if(!hayFiltro) lista=lista.slice(0, CFG.inicioVisibles);
+    $("#fiCuenta").textContent = hayFiltro
+      ? plural(total,"evento","eventos")+" de los últimos "+ULTIMOS.length
+      : "Últimos "+lista.length+(ULTIMOS.length>lista.length?" de "+ULTIMOS.length:"");
+    $("#fiLimpiar").hidden=!hayFiltro;
+    box.innerHTML = lista.length ? lista.map(e=>`
       <button type="button" class="feedRow" data-a="historial" data-id="${e.id_propiedad}" data-ev="${esc(e.id_evento)}">
         <span class="pill id">${pad4(e.id_propiedad)}</span>
         <span class="l1"><b>${esc(e.direccion)}</b></span>
         <span class="when">${fechaHora(e.fecha_carga)}<br><span class="who">${esc(usuario(e.cargado_por))}</span></span>
         <span class="l2"><span class="pill t-${esc(e.tipo)}">${esc(etiqueta(e.tipo))}</span> ${esc(e.descripcion)}</span>
       </button>`).join("")
-      : `<div class="empty"><strong>Todavía no hay eventos cargados.</strong>Tocá "Cargar evento" para subir las primeras fotos.</div>`;
+      : `<div class="empty"><strong>Ningún evento coincide con los filtros.</strong>Solo se revisan los últimos ${ULTIMOS.length} eventos cargados. Para buscar más atrás, abrí el historial de la propiedad.
+         <br><button type="button" class="btn ghost small" data-a="fiLimpiar" style="margin-top:8px">Quitar filtros</button></div>`;
   }
 
   function buscar(){
@@ -1037,7 +1088,7 @@
     el.innerHTML=`<div class="loader">Cargando el historial de la propiedad ${pad4(id)}\u2026</div>`;
     server("getHistorial", id)
       .then(res=>{
-        HIST=res; FILTRO={ tipos:{}, desde:"", hasta:"" };
+        HIST=res; FILTRO={ tipos:{}, desde:"", hasta:"", quien:"" };
         if(VISTA.v==="historial" && Number(VISTA.p.id)===id) dibujarHistorial(el);
         else if(VISTA.v==="informe" && Number(VISTA.p.id)===id) vistaInforme(el);
       })
@@ -1052,12 +1103,14 @@
     return HIST.eventos.filter(e =>
       (!tipos.length || tipos.indexOf(e.tipo)!==-1) &&
       (!FILTRO.desde || e.fecha_evento>=FILTRO.desde) &&
-      (!FILTRO.hasta || e.fecha_evento<=FILTRO.hasta));
+      (!FILTRO.hasta || e.fecha_evento<=FILTRO.hasta) &&
+      (!FILTRO.quien || e.cargado_por===FILTRO.quien));
   }
 
   function dibujarHistorial(el){
     const p=HIST.propiedad, todos=HIST.eventos;
     const presentes=CFG.tipos.filter(t=>todos.some(e=>e.tipo===t.valor));
+    const quienes=[...new Set(todos.map(e=>e.cargado_por))].sort((a,b)=>usuario(a).localeCompare(usuario(b)));
     el.innerHTML=`
       <div class="card">
         <div class="propHead">
@@ -1080,6 +1133,10 @@
       ${todos.length?`
       <div class="filters">
         <div class="chips">${presentes.map(t=>`<button type="button" class="chip ${FILTRO.tipos[t.valor]?"on":""}" data-a="filtroTipo" data-t="${esc(t.valor)}">${esc(t.etiqueta)}</button>`).join("")}</div>
+        ${quienes.length>1?`<label class="quien"><span>Cargado por</span>
+          <select id="fQuien"><option value="">Todos</option>
+            ${quienes.map(q=>`<option value="${esc(q)}" ${FILTRO.quien===q?"selected":""}>${esc(usuario(q))}${q===ME.email?" (yo)":""}</option>`).join("")}
+          </select></label>`:""}
         <div class="dates">
           <span>Desde</span><input type="date" id="fDesde" value="${esc(FILTRO.desde)}">
           <span>hasta</span><input type="date" id="fHasta" value="${esc(FILTRO.hasta)}">
@@ -1090,6 +1147,7 @@
     if(todos.length){
       $("#fDesde").addEventListener("change",e=>{ FILTRO.desde=e.target.value; dibujarEventos(); });
       $("#fHasta").addEventListener("change",e=>{ FILTRO.hasta=e.target.value; dibujarEventos(); });
+      if($("#fQuien")) $("#fQuien").addEventListener("change",e=>{ FILTRO.quien=e.target.value; dibujarEventos(); });
       dibujarEventos();
     }
   }
@@ -1343,7 +1401,9 @@
       return;
     }
     if(a==="filtroTipo"){ FILTRO.tipos[d.t]=!FILTRO.tipos[d.t]; el.classList.toggle("on", !!FILTRO.tipos[d.t]); return dibujarEventos(); }
-    if(a==="limpiarFiltros"){ FILTRO={ tipos:{}, desde:"", hasta:"" }; return dibujarHistorial($("#vista")); }
+    if(a==="limpiarFiltros"){ FILTRO={ tipos:{}, desde:"", hasta:"", quien:"" }; return dibujarHistorial($("#vista")); }
+    if(a==="fiTipo"){ FINICIO.tipos[d.t]=!FINICIO.tipos[d.t]; el.classList.toggle("on", !!FINICIO.tipos[d.t]); return dibujarFeed(); }
+    if(a==="fiLimpiar"){ FINICIO={ tipos:{}, quien:"" }; return vistaInicio($("#vista")); }
     if(a==="editarEvento") return ir("cargar", { editar:d.ev, id:HIST.propiedad.id });
     if(a==="borrarEvento"){
       const ev=eventoHist(d.ev); if(!ev) return;
