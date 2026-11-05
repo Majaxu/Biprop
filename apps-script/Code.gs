@@ -57,7 +57,8 @@ const TIPOS = [
   { valor: 'INSPECCION', etiqueta: 'Inspección' },
   { valor: 'MKT',        etiqueta: 'Comercial' },
   { valor: 'OBRA',       etiqueta: 'Obra' },
-  { valor: 'SINIESTRO',  etiqueta: 'Siniestro' }
+  { valor: 'SINIESTRO',  etiqueta: 'Siniestro' },
+  { valor: 'TASACION',   etiqueta: 'Tasación' }
 ];
 
 /** Quién produjo el material. */
@@ -157,6 +158,120 @@ function doGet() {
     .setFaviconUrl(FAVICON_URL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ================================================================== */
+/* Puerta de servicio: otras apps de JB (hoy, la Ficha de Tasación)   */
+/* ================================================================== */
+
+/**
+ * doPost recibe pedidos de otras aplicaciones internas, no de personas.
+ * Hoy la usa la Ficha de Tasación para copiar las fotos del relevamiento como
+ * un evento "Tasación" de la propiedad.
+ *
+ * Seguridad: además del acceso por dominio del deploy, cada pedido trae una
+ * clave (token) que tiene que coincidir con API_TOKEN en las Script Properties
+ * de este proyecto. Sin clave, o con clave distinta, no se hace nada.
+ *
+ * Pedido (JSON): { token, accion, ...datos }. Respuesta (JSON): { ok, ... } o { ok:false, error }.
+ *  - ping
+ *  - crearEventoTasacion { direccion, id_mirol?, fecha_evento, notas?, cargado_por }
+ *      → { ok, id_evento, id_propiedad, direccion, propiedadCreada }
+ *  - subirArchivo { id_evento, base64, nombre, mime }
+ *      → { ok, id, nombre }
+ */
+function doPost(e) {
+  const salida = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  try {
+    const datos = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const esperado = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
+    if (!esperado || !datos.token || String(datos.token) !== esperado) return salida({ ok: false, error: 'Clave inválida.' });
+    switch (String(datos.accion || '')) {
+      case 'ping': return salida({ ok: true, app: APP_NOMBRE });
+      case 'crearEventoTasacion': return salida(Object.assign({ ok: true }, crearEventoTasacion_(datos)));
+      case 'subirArchivo': return salida(Object.assign({ ok: true }, subirArchivoServicio_(datos)));
+      default: return salida({ ok: false, error: 'Acción desconocida.' });
+    }
+  } catch (err) {
+    return salida({ ok: false, error: err.message || String(err) });
+  }
+}
+
+/**
+ * Crea el evento "Tasación" (y la propiedad, si es nueva). Mismas reglas que
+ * crearEvento(): usa las mismas funciones internas, así Drive y la planilla
+ * quedan igual que si se hubiera cargado a mano.
+ *  - Con id_mirol: la propiedad tiene que existir ya (es un número de Mirol).
+ *  - Sin id_mirol: propiedad nueva con el siguiente número libre desde 5000.
+ * Defaults pedidos para la tasación: origen JB, descripción "Fotos de tasación",
+ * NO visible para el propietario.
+ */
+function crearEventoTasacion_(datos) {
+  const direccion = texto_(datos.direccion, 200).replace(/\s+/g, ' ');
+  if (!direccion) throw new Error('Falta la dirección de la propiedad.');
+  const fecha = esFechaValida_(String(datos.fecha_evento || '')) ? String(datos.fecha_evento) : hoy_();
+  const cargadoPor = texto_(datos.cargado_por, 120) || OWNER;
+  const idMirol = String(datos.id_mirol || '').trim();
+
+  return conBloqueo_(() => {
+    let prop, propiedadCreada = false;
+    if (idMirol) {
+      const id = idValido_(idMirol);
+      prop = propiedadActiva_(id);
+      if (!prop) {
+        // Está en Mirol pero todavía no en Biprop: se crea con ese número (como haría una persona desde la pantalla).
+        prop = crearPropiedad_(id, direccion, cargadoPor);
+        propiedadCreada = true;
+      }
+    } else {
+      prop = crearPropiedad_(siguienteIdLibre_(), direccion, cargadoPor);
+      propiedadCreada = true;
+    }
+
+    const d = { tipo: 'TASACION', fecha_evento: fecha, descripcion: 'Fotos de tasación', origen: 'JB',
+                notas: texto_(datos.notas, NOTAS_MAX), visible_propietario: false };
+    const carpetaProp = carpetaDe_(prop.carpeta_url);
+    const nombre = nombreCarpetaLibre_(carpetaProp, nombreBaseCarpeta_(d.fecha_evento, d.tipo, d.descripcion), '');
+    const carpeta = carpetaProp.createFolder(nombre);
+    const ev = {
+      id_evento: siguienteIdEvento_(), fecha_carga: new Date(), id_propiedad: prop.id,
+      direccion: prop.direccion, tipo: d.tipo, fecha_evento: d.fecha_evento,
+      descripcion: d.descripcion, origen: d.origen, notas: d.notas,
+      visible_propietario: d.visible_propietario, reclamo_vinculado: '',
+      cargado_por: cargadoPor, carpeta_url: carpeta.getUrl(), cantidad_archivos: 0,
+      modificado_por: '', fecha_modificacion: '', estado: 'activo'
+    };
+    agregar_('Eventos', ev);
+    const guardado = eventoActivo_(ev.id_evento);
+    reconstruirJson_(guardado, carpeta);
+    log_(cargadoPor, 'tasacion_evento', ev.id_evento, pad4_(prop.id) + ' · evento creado desde la Ficha de Tasación' + (propiedadCreada ? ' (propiedad nueva)' : ''));
+    return { id_evento: guardado.id_evento, id_propiedad: pad4_(prop.id), direccion: prop.direccion, propiedadCreada: propiedadCreada };
+  });
+}
+
+/** Sube un archivo a un evento creado por la puerta de servicio y actualiza el conteo y el evento.json. */
+function subirArchivoServicio_(datos) {
+  const ev = eventoActivo_(String(datos.id_evento || ''));
+  if (ev.tipo !== 'TASACION') throw new Error('Por la puerta de servicio solo se cargan eventos de tasación.');
+  const nombreOriginal = String(datos.nombre || 'foto.jpg').replace(/[\\\/]/g, '_').slice(0, 200);
+  let mime = String(datos.mime || '') || mimePorExtension_(extension_(nombreOriginal, ''));
+  if (!esImagen_(mime) && !esVideo_(mime)) throw new Error('Solo se pueden subir fotos y videos.');
+  if (!datos.base64) throw new Error('El archivo llegó vacío.');
+  const bytes = Utilities.base64Decode(String(datos.base64));
+  if (bytes.length > MAX_ARCHIVO_MB * 1024 * 1024) throw new Error('El archivo es demasiado grande.');
+
+  return conBloqueo_(() => {
+    const carpeta = carpetaDe_(ev.carpeta_url);
+    let n = 0;
+    vivos_(carpeta.getFiles()).forEach(f => { const m = /_(\d{3,})\.[a-z0-9]+$/.exec(f.getName()); if (m && Number(m[1]) > n) n = Number(m[1]); });
+    const ext = extension_(nombreOriginal, mime);
+    const nombre = prefijoArchivos_(ev) + pad3_(n + 1) + '.' + ext;
+    const archivo = carpeta.createFile(Utilities.newBlob(bytes, mime, nombre));
+    archivo.setDescription('Nombre original: ' + nombreOriginal + ' · copiado desde la Ficha de Tasación');
+    const archivos = reconstruirJson_(ev, carpeta);
+    actualizar_('Eventos', ev._fila, { cantidad_archivos: archivos.length });
+    return { id: archivo.getId(), nombre: nombre };
+  });
 }
 
 /* ================================================================== */

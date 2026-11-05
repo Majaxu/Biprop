@@ -140,7 +140,14 @@ mantenimiento para correr desde el editor, `verificarInstalacion` (revisa la con
 ## Fuera de alcance
 
 - Subida directa a Drive desde el navegador, sin pasar por Apps Script (eliminaría el límite de tamaño).
-- Integración con Mirol, JB2.0, Tokko, Roque o Pilar.
+- Integración con Mirol, JB2.0, Tokko, Roque o Pilar. (Con la Ficha de Tasación sí: ver abajo.)
 - Edición del evento por quien lo cargó.
 - Etiquetas por ambiente.
 - Notificaciones.
+
+## Conexión con la Ficha de Tasación
+
+Desde noviembre de 2026 la [Ficha de Tasación](https://github.com/Majaxu/fichatasacion) puede copiar las fotos de un
+relevamiento como evento **Tasación** (origen JB, "Fotos de tasación", no visible para el propietario), creando la
+propiedad si es nueva. Entra por `doPost` (puerta de servicio protegida con la clave `API_TOKEN`); las personas siguen
+usando la app igual que siempre. Cómo habilitarlo: [apps-script/DEPLOY.md](apps-script/DEPLOY.md), último apartado.

@@ -222,3 +222,26 @@ de incógnito, entrando solo con la cuenta `@juarezbeltran.com.ar`.
 **¿Cuánto cuesta?**
 $0 dentro de los límites gratuitos de Google Apps Script. El espacio que ocupan las fotos sí cuenta contra el
 almacenamiento de la cuenta `mantenimiento@`.
+
+---
+
+## Conexión con la Ficha de Tasación (puerta de servicio)
+
+La [Ficha de Tasación](https://github.com/Majaxu/fichatasacion) copia las fotos del relevamiento a Biprop como un evento
+**Tasación** de la propiedad (origen JB, "Fotos de tasación", no visible para el propietario). Para habilitarlo, una
+sola vez, logueado como `mantenimiento@`:
+
+1. **Clave compartida.** En el proyecto de Apps Script de Biprop: ⚙ Configuración del proyecto → **Propiedades de la
+   secuencia de comandos** → *Agregar propiedad*: nombre `API_TOKEN`, valor: una clave larga cualquiera (por ejemplo
+   30 letras y números al azar). Guardar.
+2. **Pegar el `Code.gs` y el `Index.html` nuevos** (traen el tipo Tasación y la función `doPost`) y publicar una
+   **versión nueva** de la implementación existente (Implementar → Administrar implementaciones → ✎ → Versión nueva).
+   La URL no cambia.
+3. En la **Ficha de Tasación** (proyecto de mjuarez@): Propiedades de la secuencia de comandos → `BIPROP_URL` = la URL
+   `/exec` de Biprop, y `BIPROP_TOKEN` = la misma clave del paso 1. Después, `verificarInstalacion()` tiene que decir
+   "Biprop OK".
+
+Si `verificarInstalacion()` dice que Biprop respondió "algo inesperado", el deploy de Biprop no acepta llamadas entre
+scripts con acceso solo al dominio: en ese caso, en Administrar implementaciones cambiar *Quién tiene acceso* a
+**Cualquier usuario** (la clave sigue protegiendo la puerta de servicio; las personas siguen necesitando cuenta del
+dominio para ver la app, porque `doGet` no cambia).
