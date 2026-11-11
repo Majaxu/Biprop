@@ -1,6 +1,6 @@
 # Biprop · Bitácora de propiedades · Juárez Beltrán
 
-Archivador online de **fotos y videos de las propiedades** que administra JB, organizado por **evento**
+Archivador online de **fotos, videos y documentos de las propiedades** que administra JB, organizado por **evento**
 (ingreso de inquilino, reclamo, reparación, etc.), con fecha, notas y registro de quién lo cargó.
 
 Hoy ese material llega por email y WhatsApp y no queda en ningún lado. Con Biprop:
@@ -52,7 +52,7 @@ acceso restringido al dominio) y compartir la carpeta `Historial` con el dominio
 | Pantalla | Qué hace | Quién |
 |---|---|---|
 | Inicio | Buscador por ID o dirección y los últimos 30 eventos cargados | Todos |
-| Cargar evento | Formulario con fotos y videos; crea la propiedad si no existe | Todos |
+| Cargar evento | Formulario con fotos, videos y documentos (PDF, Word, etc.); crea la propiedad si no existe | Todos |
 | Historial de propiedad | Eventos en orden cronológico inverso, con filtros por tipo y fecha | Todos |
 | Control | Qué falta documentar: propiedades sin ingreso, reclamos sin reparación, propiedades sin eventos en 12 meses | Todos |
 | Informe para propietario | Elige eventos y genera un Word | Administradores |
@@ -140,7 +140,7 @@ mantenimiento para correr desde el editor, `verificarInstalacion` (revisa la con
 ## Fuera de alcance
 
 - Subida directa a Drive desde el navegador, sin pasar por Apps Script (eliminaría el límite de tamaño).
-- Integración con Mirol, JB2.0, Tokko, Roque o Pilar. (Con la Ficha de Tasación sí: ver abajo.)
+- Integración con Mirol, JB2.0, Tokko, Roque o Pilar. (Con la Ficha de Tasación y con Pipeline Reclamos sí: ver abajo.)
 - Edición del evento por quien lo cargó.
 - Etiquetas por ambiente.
 - Notificaciones.
@@ -151,3 +151,17 @@ Desde noviembre de 2026 la [Ficha de Tasación](https://github.com/Majaxu/fichat
 relevamiento como evento **Tasación** (origen JB, "Fotos de tasación", no visible para el propietario), creando la
 propiedad si es nueva. Entra por `doPost` (puerta de servicio protegida con la clave `API_TOKEN`); las personas siguen
 usando la app igual que siempre. Cómo habilitarlo: [apps-script/DEPLOY.md](apps-script/DEPLOY.md), último apartado.
+
+## Conexión con Pipeline Reclamos
+
+Desde noviembre de 2026 [Pipeline Reclamos](https://github.com/Majaxu/reclamos) carga en Biprop los adjuntos de cada
+reclamo, por la misma puerta de servicio (`doPost` con la clave `API_TOKEN`):
+
+- Al ingresar el reclamo crea un evento **Reclamo** y al terminar el trabajo un evento **Reparación**, vinculado al
+  reclamo. Cada uno lleva el texto, el número de reclamo, el autor y, en el segundo, el proveedor.
+- Si la propiedad no existe en Biprop, la crea con el ID y la dirección cargados en el reclamo.
+- Los archivos se copian dentro de Drive (las dos apps corren en `mantenimiento@`), sin límite de 30 MB.
+- Pipeline Reclamos además lee la hoja `Propiedades` de la planilla, solo lectura, como padrón de propiedades.
+
+Para esto Biprop acepta ahora **cualquier tipo de archivo**, no solo fotos y videos. En el historial se ven con un ícono
+genérico y en el informe para el propietario figuran como "Archivo: nombre".

@@ -2,7 +2,7 @@
  * Biprop · Bitácora de propiedades · Juárez Beltrán
  * Backend en Google Apps Script + Google Sheets + Google Drive.
  *
- * Qué hace: archiva fotos y videos de las propiedades, ordenados por evento
+ * Qué hace: archiva fotos, videos y documentos de las propiedades, ordenados por evento
  * (ingreso, reclamo, reparación, etc.), con fecha, notas y quién lo cargó.
  *
  * Cómo se publica: como aplicación web, "Ejecutar como: yo" (mantenimiento@)
@@ -12,7 +12,8 @@
  * real de Google (Session.getActiveUser()). La pantalla solo oculta botones.
  *
  * Nada se carga solo: una persona decide qué sube, de qué propiedad y con qué
- * fecha. No se leen mails ni WhatsApp, no hay integración con otros sistemas.
+ * fecha. No se leen mails ni WhatsApp. Otras apps de JB (Ficha de Tasación y
+ * Pipeline Reclamos) cargan eventos por la puerta de servicio (doPost).
  */
 
 /* ================================================================== */
@@ -179,6 +180,15 @@ function doGet() {
  *      → { ok, id_evento, id_propiedad, direccion, propiedadCreada }
  *  - subirArchivo { id_evento, base64, nombre, mime }
  *      → { ok, id, nombre }
+ *
+ * Acciones que usa Pipeline Reclamos (corre en la misma cuenta, mantenimiento@):
+ *  - asegurarPropiedad { id, direccion, cargado_por }
+ *      → { ok, id_propiedad, direccion, creada }
+ *  - crearEventoReclamo { id_propiedad, direccion, tipo (RECLAMO|REPARACION), fecha_evento,
+ *                         descripcion, origen, notas, reclamo_vinculado?, cargado_por }
+ *      → { ok, id_evento, id_propiedad, carpeta_url, propiedadCreada }
+ *  - copiarArchivo { id_evento, file_id, nombre_original, subido_por }
+ *      → { ok, id, nombre }   (copia dentro de Drive: el archivo no viaja por la red)
  */
 function doPost(e) {
   const salida = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
@@ -190,6 +200,9 @@ function doPost(e) {
       case 'ping': return salida({ ok: true, app: APP_NOMBRE });
       case 'crearEventoTasacion': return salida(Object.assign({ ok: true }, crearEventoTasacion_(datos)));
       case 'subirArchivo': return salida(Object.assign({ ok: true }, subirArchivoServicio_(datos)));
+      case 'asegurarPropiedad': return salida(Object.assign({ ok: true }, asegurarPropiedad_(datos)));
+      case 'crearEventoReclamo': return salida(Object.assign({ ok: true }, crearEventoReclamo_(datos)));
+      case 'copiarArchivo': return salida(Object.assign({ ok: true }, copiarArchivoServicio_(datos)));
       default: return salida({ ok: false, error: 'Acción desconocida.' });
     }
   } catch (err) {
@@ -271,6 +284,104 @@ function subirArchivoServicio_(datos) {
     const archivos = reconstruirJson_(ev, carpeta);
     actualizar_('Eventos', ev._fila, { cantidad_archivos: archivos.length });
     return { id: archivo.getId(), nombre: nombre };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Puerta de servicio · Pipeline Reclamos                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Devuelve la propiedad con ese ID; si no existe, la crea con la dirección
+ * recibida (regla acordada para Pipeline Reclamos: una propiedad que no está
+ * en Biprop se da de alta con el número de ID y la dirección).
+ * Se llama con el candado tomado.
+ */
+function propiedadOAlta_(idTexto, direccion, cargadoPor) {
+  const id = idValido_(idTexto);
+  let prop = propiedadActiva_(id);
+  if (prop) return { prop: prop, creada: false };
+  direccion = texto_(direccion, 200).replace(/\s+/g, ' ');
+  if (!direccion) throw new Error('La propiedad ' + pad4_(id) + ' no existe en Biprop y no llegó la dirección para crearla.');
+  prop = crearPropiedad_(id, direccion, cargadoPor);
+  log_(cargadoPor, 'reclamos_propiedad', pad4_(id), direccion + ' · propiedad creada desde Pipeline Reclamos');
+  return { prop: prop, creada: true };
+}
+
+function asegurarPropiedad_(datos) {
+  const cargadoPor = texto_(datos.cargado_por, 120) || OWNER;
+  return conBloqueo_(() => {
+    const r = propiedadOAlta_(datos.id, datos.direccion, cargadoPor);
+    return { id_propiedad: pad4_(r.prop.id), direccion: r.prop.direccion, creada: r.creada };
+  });
+}
+
+/**
+ * Crea un evento Reclamo o Reparación a pedido de Pipeline Reclamos. Usa las
+ * mismas funciones internas que crearEvento(), así Drive y la planilla quedan
+ * igual que si se hubiera cargado a mano. Los archivos llegan después, con
+ * copiarArchivo.
+ */
+function crearEventoReclamo_(datos) {
+  const tipo = String(datos.tipo || '');
+  if (tipo !== 'RECLAMO' && tipo !== 'REPARACION') throw new Error('Por acá solo se cargan eventos de reclamo o de reparación.');
+  const fecha = esFechaValida_(String(datos.fecha_evento || '')) ? String(datos.fecha_evento) : hoy_();
+  const cargadoPor = texto_(datos.cargado_por, 120) || OWNER;
+  const descripcion = (texto_(datos.descripcion).replace(/\s+/g, ' ') || etiquetaTipo_(tipo)).slice(0, DESCRIPCION_MAX);
+  const origen = ORIGENES.indexOf(String(datos.origen || '')) !== -1 ? String(datos.origen) : 'JB';
+
+  return conBloqueo_(() => {
+    const r = propiedadOAlta_(datos.id_propiedad, datos.direccion, cargadoPor);
+    const prop = r.prop;
+    // El vínculo solo vale para una Reparación y tiene que apuntar a un Reclamo de la misma propiedad.
+    let vinculo = '';
+    if (tipo === 'REPARACION' && datos.reclamo_vinculado) {
+      const rec = eventosDe_(prop.id).filter(e => e.id_evento === String(datos.reclamo_vinculado) && e.tipo === 'RECLAMO')[0];
+      if (rec) vinculo = rec.id_evento;
+    }
+    const carpetaProp = carpetaDe_(prop.carpeta_url);
+    const nombre = nombreCarpetaLibre_(carpetaProp, nombreBaseCarpeta_(fecha, tipo, descripcion), '');
+    const carpeta = carpetaProp.createFolder(nombre);
+    const ev = {
+      id_evento: siguienteIdEvento_(), fecha_carga: new Date(), id_propiedad: prop.id,
+      direccion: prop.direccion, tipo: tipo, fecha_evento: fecha,
+      descripcion: descripcion, origen: origen, notas: texto_(datos.notas, NOTAS_MAX),
+      visible_propietario: true, reclamo_vinculado: vinculo,
+      cargado_por: cargadoPor, carpeta_url: carpeta.getUrl(), cantidad_archivos: 0,
+      modificado_por: '', fecha_modificacion: '', estado: 'activo'
+    };
+    agregar_('Eventos', ev);
+    const guardado = eventoActivo_(ev.id_evento);
+    reconstruirJson_(guardado, carpeta);
+    log_(cargadoPor, 'reclamos_evento', ev.id_evento, pad4_(prop.id) + ' · evento creado desde Pipeline Reclamos' + (r.creada ? ' (propiedad nueva)' : ''));
+    return { id_evento: guardado.id_evento, id_propiedad: pad4_(prop.id), carpeta_url: guardado.carpeta_url, propiedadCreada: r.creada };
+  });
+}
+
+/**
+ * Copia a la carpeta del evento un archivo que ya está en el Drive de
+ * mantenimiento@ (Pipeline Reclamos lo guardó primero en la carpeta del
+ * reclamo). Acepta cualquier tipo de archivo. El original no se toca.
+ */
+function copiarArchivoServicio_(datos) {
+  const ev = eventoActivo_(String(datos.id_evento || ''));
+  if (ev.tipo !== 'RECLAMO' && ev.tipo !== 'REPARACION') throw new Error('Por acá solo se copian archivos a eventos de reclamo o de reparación.');
+  let origen;
+  try { origen = DriveApp.getFileById(String(datos.file_id || '')); }
+  catch (e) { throw new Error('Biprop no pudo abrir el archivo a copiar.'); }
+  const nombreOriginal = String(datos.nombre_original || origen.getName()).replace(/[\\\/]/g, '_').slice(0, 200);
+  const subidoPor = texto_(datos.subido_por, 120) || OWNER;
+
+  return conBloqueo_(() => {
+    const carpeta = carpetaDe_(ev.carpeta_url);
+    let n = 0;
+    vivos_(carpeta.getFiles()).forEach(f => { const m = /_(\d{3,})\.[a-z0-9]+$/.exec(f.getName()); if (m && Number(m[1]) > n) n = Number(m[1]); });
+    const nombre = prefijoArchivos_(ev) + pad3_(n + 1) + '.' + extension_(nombreOriginal, origen.getMimeType());
+    const copia = origen.makeCopy(nombre, carpeta);
+    copia.setDescription('Nombre original: ' + nombreOriginal + ' · subido por ' + subidoPor + ' (Pipeline Reclamos)');
+    const archivos = reconstruirJson_(ev, carpeta);
+    actualizar_('Eventos', ev._fila, { cantidad_archivos: archivos.length });
+    return { id: copia.getId(), nombre: nombre };
   });
 }
 
@@ -399,7 +510,10 @@ function extension_(nombreOriginal, mime) {
   const porMime = {
     'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/heif': 'heif',
     'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/quicktime': 'mov',
-    'video/webm': 'webm', 'video/3gpp': '3gp'
+    'video/webm': 'webm', 'video/3gpp': '3gp', 'application/pdf': 'pdf', 'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx', 'text/plain': 'txt'
   };
   return porMime[String(mime || '').toLowerCase()] || 'bin';
 }
@@ -408,7 +522,11 @@ function mimePorExtension_(ext) {
   const tabla = {
     jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', heic: 'image/heic', heif: 'image/heif',
     webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4', mov: 'video/quicktime',
-    webm: 'video/webm', '3gp': 'video/3gpp', m4v: 'video/x-m4v', avi: 'video/x-msvideo', mkv: 'video/x-matroska'
+    webm: 'video/webm', '3gp': 'video/3gpp', m4v: 'video/x-m4v', avi: 'video/x-msvideo', mkv: 'video/x-matroska',
+    pdf: 'application/pdf', doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain'
   };
   return tabla[ext] || '';
 }
@@ -1083,8 +1201,8 @@ function subirArchivo(idEvento, base64, nombreOriginal, mime) {
 
   nombreOriginal = String(nombreOriginal || 'archivo').replace(/[\\\/]/g, '_').slice(0, 200);
   const ext = extension_(nombreOriginal, mime);
-  mime = String(mime || '') || mimePorExtension_(ext);
-  if (!esImagen_(mime) && !esVideo_(mime)) throw new Error('Solo se pueden subir fotos y videos.');
+  // TIPOS DE ARCHIVO: además de fotos y videos se aceptan PDF, Word y otros formatos comunes.
+  mime = String(mime || '') || mimePorExtension_(ext) || 'application/octet-stream';
   if (!base64) throw new Error('El archivo llegó vacío. Probá subirlo de nuevo.');
 
   const bytes = Utilities.base64Decode(base64);

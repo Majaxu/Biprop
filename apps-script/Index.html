@@ -479,7 +479,7 @@
   const urlArchivo = id => "https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view";
 
   // Tipos de archivo que acepta el selector. Van en textos comunes, fuera de las plantillas de HTML.
-  const ACEPTA_TODO = "image/*,video/*";
+  const ACEPTA_TODO = "image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt";
   const ACEPTA_FOTO = "image/*";
 
   const ICON = {
@@ -816,9 +816,9 @@
         ${ev?`<div class="field"><span class="flabel">Archivos del evento</span><div class="previews" id="existentes"></div></div>`:""}
 
         <div class="field">
-          <span class="flabel">${ev?"Agregar fotos y videos":"Fotos y videos *"}</span>
+          <span class="flabel">${ev?"Agregar fotos, videos y documentos":"Fotos, videos y documentos *"}</span>
           <div class="pickRow">
-            <button type="button" class="btn ghost" data-a="elegir">${ICON.photo} Elegir fotos y videos</button>
+            <button type="button" class="btn ghost" data-a="elegir">${ICON.photo} Elegir archivos</button>
             ${coarse?`<button type="button" class="btn ghost" data-a="camara">${ICON.camera} Sacar foto</button>`:""}
           </div>
           <input type="file" id="fFiles" accept="${ACEPTA_TODO}" multiple hidden>

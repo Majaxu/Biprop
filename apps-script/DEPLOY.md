@@ -245,3 +245,17 @@ Si `verificarInstalacion()` dice que Biprop respondió "algo inesperado", el dep
 scripts con acceso solo al dominio: en ese caso, en Administrar implementaciones cambiar *Quién tiene acceso* a
 **Cualquier usuario** (la clave sigue protegiendo la puerta de servicio; las personas siguen necesitando cuenta del
 dominio para ver la app, porque `doGet` no cambia).
+
+---
+
+## Conexión con Pipeline Reclamos
+
+[Pipeline Reclamos](https://github.com/Majaxu/reclamos) usa la misma puerta de servicio y la misma clave `API_TOKEN`.
+Para habilitarlo, logueado como `mantenimiento@`:
+
+1. Si todavía no existe, creá la propiedad `API_TOKEN` (paso 1 del apartado anterior).
+2. Pegá el `Code.gs` y el `Index.html` nuevos (traen las acciones `asegurarPropiedad`, `crearEventoReclamo` y
+   `copiarArchivo`, y aceptan PDF, Word y otros archivos) y publicá una **versión nueva** de la implementación existente.
+   La URL no cambia.
+3. Seguí el Paso 5 de `apps-script/DEPLOY.md` del repo `reclamos` para cargar ahí `BIPROP_SHEET_ID`, `BIPROP_URL` y
+   `BIPROP_TOKEN`.
